@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PromptForge — AI Image Prompt Generator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --teal: #00b4a0;
+    --orange: #dc6420;
+    --bg: #080a0f;
+    --bg2: #0d1018;
+    --bg3: #111520;
+    --border: #1e2230;
+    --text: #e8e0d0;
+    --muted: #6a6055;
+    --dim: #2a2f3a;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grain */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  /* Ambient glows */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -200px; left: -100px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(0,180,160,0.05) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .glow-orange {
+    position: fixed;
+    bottom: -150px; right: -100px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(220,100,30,0.06) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 56px 24px 100px;
+  }
+
+  /* Header */
+  .eyebrow {
+    text-align: center;
+    letter-spacing: 0.4em;
+    font-size: 10px;
+    color: var(--teal);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(36px, 7vw, 58px);
+    font-weight: 400;
+    text-align: center;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: #f0e8d8;
+    margin-bottom: 10px;
+  }
+
+  h1 em {
+    color: var(--orange);
+    font-style: italic;
+  }
+
+  .subtitle {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    margin-bottom: 52px;
+  }
+
+  /* Model Tabs */
+  .model-tabs {
+    display: flex;
+    gap: 6px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 32px;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 10px 8px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    color: var(--dim);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    font-family: 'JetBrains Mono', monospace;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .tab.active {
+    background: #1a2535;
+    border-color: var(--teal);
+    color: var(--teal);
+  }
+
+  /* Description */
+  .field-label {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  textarea {
+    width: 100%;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: 'Playfair Display', serif;
+    resize: vertical;
+    outline: none;
+    line-height: 1.7;
+    transition: border-color 0.2s;
+    margin-bottom: 28px;
+  }
+
+  textarea:focus { border-color: var(--teal); }
+  textarea::placeholder { color: var(--dim); }
+
+  /* Options Grid */
+  .options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+
+  .option-group { display: flex; flex-direction: column; }
+  .option-group.full { grid-column: 1 / -1; }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 4px;
+  }
+
+  .chip {
+    padding: 7px 13px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-size: 11px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .chip:hover { border-color: #2a3040; color: #9a9080; }
+
+  .chip.selected {
+    background: rgba(0,180,160,0.1);
+    border-color: var(--teal);
+    color: var(--teal);
+  }
+
+  /* Divider */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 32px 0;
+  }
+
+  /* Generate Button */
+  .btn-forge {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, var(--teal), #009688);
+    border: none;
+    border-radius: 10px;
+    color: var(--bg);
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-forge:disabled {
+    background: var(--bg3);
+    color: var(--dim);
+    cursor: not-allowed;
+  }
+
+  .btn-forge:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 30px rgba(0,180,160,0.2);
+  }
+
+  .counter {
+    text-align: center;
+    font-size: 10px;
+    color: var(--dim);
+    margin-top: 10px;
+    letter-spacing: 0.1em;
+  }
+
+  /* Result */
+  #result-section { display: none; }
+
+  .result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+  }
+
+  .result-label {
+    font-size: 10px;
+    color: var(--teal);
+    letter-spacing: 0.25em;
+    margin-bottom: 5px;
+  }
+
+  .result-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 400;
+    color: #f0e8d8;
+  }
+
+  .btn-back {
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-size: 10px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+
+  .btn-back:hover { border-color: var(--muted); }
+
+  .prompt-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 14px;
+    position: relative;
+  }
+
+  .box-label {
+    position: absolute;
+    top: 14px; right: 18px;
+    font-size: 9px;
+    color: var(--dim);
+    letter-spacing: 0.2em;
+  }
+
+  .prompt-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.9;
+    color: #c8c0b0;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .neg-box {
+    background: #0a0c10;
+    border: 1px solid #141820;
+    border-radius: 10px;
+    padding: 18px 24px;
+    margin-bottom: 14px;
+  }
+
+  .neg-label {
+    font-size: 9px;
+    color: var(--orange);
+    letter-spacing: 0.2em;
+    margin-bottom: 8px;
+  }
+
+  .neg-text {
+    font-size: 12px;
+    color: #3a3530;
+    line-height: 1.7;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Tags */
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-bottom: 24px;
+  }
+
+  .tag {
+    padding: 4px 12px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 10px;
+    color: #2a2f3a;
+    letter-spacing: 0.05em;
+  }
+
+  /* Action buttons */
+  .actions { display: flex; gap: 10px; }
+
+  .btn-copy {
+    flex: 1;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--teal), #009688);
+    border: none;
+    border-radius: 8px;
+    color: var(--bg);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+
+  .btn-copy.copied {
+    background: linear-gradient(135deg, var(--orange), #b84d10);
+  }
+
+  .btn-remix {
+    padding: 16px 22px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    font-family: 'JetBrains Mono', monospace;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+
+  .btn-remix:hover { border-color: var(--muted); }
+
+  /* Footer */
+  .footer {
+    margin-top: 72px;
+    border-top: 1px solid #0d1018;
+    padding-top: 24px;
+    text-align: center;
+    font-size: 10px;
+    color: #1a1f2a;
+    letter-spacing: 0.2em;
+  }
+
+  @media (max-width: 600px) {
+    .options-grid { grid-template-columns: 1fr; }
+    .option-group.full { grid-column: 1; }
+    .model-tabs { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<div class="glow-orange"></div>
+<div class="container">
+
+  <!-- Header -->
+  <p class="eyebrow">AI Visual Studio — By Venkat</p>
+  <h1>Prompt<em>Forge</em></h1>
+  <p class="subtitle">Cinematic image prompts — built with director precision</p>
+
+  <!-- FORM SECTION -->
+  <div id="form-section">
+
+    <!-- Model Tabs -->
+    <div class="model-tabs">
+      <button class="tab active" onclick="selectModel(this, 'ChatGPT Image 1.5')">ChatGPT Image 1.5</button>
+      <button class="tab" onclick="selectModel(this, 'Nano Banana Pro')">Nano Banana Pro</button>
+      <button class="tab" onclick="selectModel(this, 'Grok Imagine')">Grok Imagine</button>
+    </div>
+
+    <!-- Description -->
+    <label class="field-label">◈ Describe your idea (optional)</label>
+    <textarea id="description" rows="3" placeholder="e.g. A lone figure standing in a rainy alley at night, neon signs reflecting on wet pavement..."></textarea>
+
+    <!-- Options -->
+    <div class="options-grid">
+
+      <div class="option-group">
+        <span class="field-label">◈ Subject Type</span>
+        <div class="chips" id="subject">
+          <button class="chip" onclick="select(this,'subject')">Portrait / Human</button>
+          <button class="chip" onclick="select(this,'subject')">Landscape / Environment</button>
+          <button class="chip" onclick="select(this,'subject')">Urban / City</button>
+          <button class="chip" onclick="select(this,'subject')">Abstract / Conceptual</button>
+          <button class="chip" onclick="select(this,'subject')">Architecture</button>
+          <button class="chip" onclick="select(this,'subject')">Creature / Animal</button>
+          <button class="chip" onclick="select(this,'subject')">Product / Object</button>
+        </div>
+      </div>
+
+      <div class="option-group">
+        <span class="field-label">◉ Aesthetic Direction</span>
+        <div class="chips" id="aesthetic">
+          <button class="chip" onclick="select(this,'aesthetic')">Joker / Psychological Grit</button>
+          <button class="chip" onclick="select(this,'aesthetic')">Villeneuve / Epic Scale</button>
+          <button class="chip" onclick="select(this,'aesthetic')">Retrofuturism / Lo-fi Sci-fi</button>
+          <button class="chip" onclick="select(this,'aesthetic')">Makoto Shinkai / Atmospheric</button>
+          <button class="chip" onclick="select(this,'aesthetic')">Lanthimos / Surreal</button>
+          <button class="chip" onclick="select(this,'aesthetic')">Nolan / IMAX Realism</button>
+          <button class="chip" onclick="select(this,'aesthetic')">Noir / High Contrast</button>
+        </div>
+      </div>
+
+      <div class="option-group">
+        <span class="field-label">◌ Mood</span>
+        <div class="chips" id="mood">
+          <button class="chip" onclick="select(this,'mood')">Melancholic / Lonely</button>
+          <button class="chip" onclick="select(this,'mood')">Tense / Psychological</button>
+          <button class="chip" onclick="select(this,'mood')">Hopeful / Golden</button>
+          <button class="chip" onclick="select(this,'mood')">Eerie / Unsettling</button>
+          <button class="chip" onclick="select(this,'mood')">Epic / Grand</button>
+          <button class="chip" onclick="select(this,'mood')">Intimate / Quiet</button>
+          <button class="chip" onclick="select(this,'mood')">Meditative / Still</button>
+        </div>
+      </div>
+
+      <div class="option-group">
+        <span class="field-label">◎ Lighting</span>
+        <div class="chips" id="lighting">
+          <button class="chip" onclick="select(this,'lighting')">Golden Hour (3200K)</button>
+          <button class="chip" onclick="select(this,'lighting')">Blue Hour / Dusk</button>
+          <button class="chip" onclick="select(this,'lighting')">Harsh Fluorescent</button>
+          <button class="chip" onclick="select(this,'lighting')">Neon Urban Night</button>
+          <button class="chip" onclick="select(this,'lighting')">Soft Window Light</button>
+          <button class="chip" onclick="select(this,'lighting')">Firelight / Candlelight</button>
+          <button class="chip" onclick="select(this,'lighting')">High Contrast Noir</button>
+        </div>
+      </div>
+
+      <div class="option-group full">
+        <span class="field-label">◍ Lens / Focal Length</span>
+        <div class="chips" id="lens">
+          <button class="chip" onclick="select(this,'lens')">24mm — Wide, Immersive</button>
+          <button class="chip" onclick="select(this,'lens')">35mm — Documentary, Natural</button>
+          <button class="chip" onclick="select(this,'lens')">50mm — Human Eye</button>
+          <button class="chip" onclick="select(this,'lens')">85mm — Portrait, Intimate</button>
+          <button class="chip" onclick="select(this,'lens')">135mm — Compressed, Voyeur</button>
+          <button class="chip" onclick="select(this,'lens')">Macro — Extreme Detail</button>
+        </div>
+      </div>
+
+    </div>
+
+    <hr class="divider">
+
+    <button class="btn-forge" id="forge-btn" onclick="forge()" disabled>
+      Select All 5 Options to Forge
+    </button>
+    <p class="counter" id="counter">0 / 5 selected</p>
+
+  </div>
+
+  <!-- RESULT SECTION -->
+  <div id="result-section">
+    <div class="result-header">
+      <div>
+        <div class="result-label" id="result-label">PROMPT READY</div>
+        <div class="result-title" id="result-title">—</div>
+      </div>
+      <button class="btn-back" onclick="goBack()">← NEW PROMPT</button>
+    </div>
+
+    <div class="prompt-box">
+      <span class="box-label">MAIN PROMPT</span>
+      <div class="prompt-text" id="main-prompt"></div>
+    </div>
+
+    <div class="neg-box">
+      <div class="neg-label">NEGATIVE PROMPT</div>
+      <div class="neg-text" id="neg-prompt"></div>
+    </div>
+
+    <div class="tags" id="tags"></div>
+
+    <div class="actions">
+      <button class="btn-copy" id="copy-btn" onclick="copyPrompt()">⊕ COPY FULL PROMPT</button>
+      <button class="btn-remix" onclick="goBack()">↺ REMIX</button>
+    </div>
+  </div>
+
+  <div class="footer">PROMPTFORGE — AI VISUAL STUDIO — BUILT BY VENKAT</div>
+</div>
+
+<script>
+const state = {
+  model: 'ChatGPT Image 1.5',
+  subject: '', aesthetic: '', mood: '', lighting: '', lens: '',
+  description: ''
+};
+
+function selectModel(el, model) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  state.model = model;
+}
+
+function select(el, key) {
+  document.querySelectorAll(`#${key} .chip`).forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  state[key] = el.textContent.trim();
+  updateCounter();
+}
+
+function updateCounter() {
+  const filled = ['subject','aesthetic','mood','lighting','lens'].filter(k => state[k]).length;
+  document.getElementById('counter').textContent = `${filled} / 5 selected`;
+  const btn = document.getElementById('forge-btn');
+  btn.disabled = filled < 5;
+  btn.textContent = filled < 5
+    ? `Select ${5 - filled} more option${5 - filled !== 1 ? 's' : ''} to Forge`
+    : '⟐ FORGE PROMPT';
+}
+
+// ─── Prompt Templates ────────────────────────────────────────────────
+
+const aestheticData = {
+  'Joker / Psychological Grit': {
+    grade: 'teal-orange color grading, shadows pushed deep teal-cyan, highlights warm amber, skin tones preserved orange',
+    texture: 'gritty surface texture, 35mm film grain visible in shadows, halation around practical light sources',
+    atmos: 'psychological weight, emotional tension, gritty urban atmosphere'
+  },
+  'Villeneuve / Epic Scale': {
+    grade: 'muted earth palette, ochre and sand tones, desaturated midtones with selective blue-teal accents',
+    texture: 'IMAX-quality texture, sharp micro-detail on all surfaces, heavy atmospheric haze and dust particles',
+    atmos: 'god-scale composition, vast emptiness, awe and isolation'
+  },
+  'Retrofuturism / Lo-fi Sci-fi': {
+    grade: 'VHS color bleed, slight chromatic aberration on edges, cyan-magenta split highlights',
+    texture: 'analog noise texture, CRT scan-line quality, VHS tracking artifacts, lo-fi grain',
+    atmos: '1980s neon-soaked retrofuturism, analog warmth, synthetic nostalgia'
+  },
+  'Makoto Shinkai / Atmospheric': {
+    grade: 'hyper-saturated sky blues and warm golden ground, strong contrast between sky and earth',
+    texture: 'hyper-detailed environment surfaces, every leaf and particle visible, god rays through atmospheric haze',
+    atmos: 'emotional atmospheric lighting, loneliness rendered as beauty, rain reflections, god rays'
+  },
+  'Lanthimos / Surreal': {
+    grade: 'desaturated world with single vivid color pop, wide-angle lens distortion bending reality',
+    texture: 'clinical surrealism, perfect imperfection, fisheye edge distortion',
+    atmos: 'dark whimsy, surreal but grounded, unsettling normalcy'
+  },
+  'Nolan / IMAX Realism': {
+    grade: 'minimal color grading, true-to-life color temperature, deep blacks and luminous highlights',
+    texture: 'IMAX 70mm clarity, practical lighting only, zero digital artifacts, maximum sharpness',
+    atmos: 'hyper-real immersion, documentary authenticity, practical weight'
+  },
+  'Noir / High Contrast': {
+    grade: 'monochromatic blue-grey shadows, single warm key light, extreme contrast ratio 1:16',
+    texture: '35mm noir grain, deep shadow crush, chiaroscuro edge definition',
+    atmos: 'crime drama tension, isolation, psychological noir'
+  }
+};
+
+const lightingData = {
+  'Golden Hour (3200K)': 'warm 3200K golden hour key light from low angle camera-right, long soft shadows, orange-pink ambient fill from open sky',
+  'Blue Hour / Dusk': 'cool 6500K twilight ambient, deep blue-purple gradient sky, minimal directional shadows, magical transition light',
+  'Harsh Fluorescent': 'cold 4100K overhead fluorescent tubes, harsh downward shadows, slight green cast in midtones, institutional flatness',
+  'Neon Urban Night': 'multiple practical neon sources (cyan, magenta, amber), colored light spill across surfaces, high contrast between lit and unlit zones, rain-slicked reflections',
+  'Soft Window Light': 'natural 5000K window light from camera-left, soft wrap, gentle gradient shadows, dust motes visible in light beam',
+  'Firelight / Candlelight': 'flickering 1800K firelight key, dancing orange-amber shadows, dramatic falloff into deep black, warm SSS glow on skin',
+  'High Contrast Noir': 'single harsh key light 2700K from 45-degree angle, fill ratio 1:8, deep crushed blacks, rim light separating subject from background'
+};
+
+const lensData = {
+  '24mm — Wide, Immersive': '24mm wide-angle lens, f/4 deep focus, extensive background in sharp focus, slight edge distortion, immersive environmental context',
+  '35mm — Documentary, Natural': '35mm lens, f/2.8 moderate shallow focus, natural human perspective, documentary authenticity, background softened but readable',
+  '50mm — Human Eye': '50mm standard lens, f/2.0, neutral perspective matching human eye, background gently blurred, balanced composition',
+  '85mm — Portrait, Intimate': '85mm portrait lens, f/1.8 shallow depth of field, creamy background bokeh, subject isolated beautifully, intimate compression',
+  '135mm — Compressed, Voyeur': '135mm telephoto lens, f/2.0, strong background compression, layers flattened, voyeuristic distance, subject sharp against soft depth',
+  'Macro — Extreme Detail': '100mm macro lens, f/2.8 extremely shallow focus, subject fills entire frame, micro-texture visible at pore and fiber level'
+};
+
+const moodAtmos = {
+  'Melancholic / Lonely': 'melancholic isolation, subject dwarfed by environment, visual loneliness, quiet emotional weight',
+  'Tense / Psychological': 'psychological tension, unease building in composition, Dutch angle 2-3 degrees, viewer discomfort',
+  'Hopeful / Golden': 'warmth and forward momentum, golden light as metaphor, open composition with breathing room',
+  'Eerie / Unsettling': 'uncanny wrongness, too quiet, too still, something slightly off in every element',
+  'Epic / Grand': 'monumental scale, human smallness against vast forces, grandeur and awe',
+  'Intimate / Quiet': 'whisper-quiet intimacy, private moment witnessed, tender fragility',
+  'Meditative / Still': 'zen stillness, breath held, time suspended, contemplative peace'
+};
+
+const negativeByAesthetic = {
+  'Joker / Psychological Grit': 'clean commercial look, bright happy lighting, flat lighting, HDR glow, Instagram filter',
+  'Villeneuve / Epic Scale': 'cluttered composition, busy frame, warm color grade, shallow focus on landscape',
+  'Retrofuturism / Lo-fi Sci-fi': 'modern sharp digital look, 8K clarity, HDR, pristine surfaces, contemporary aesthetic',
+  'Makoto Shinkai / Atmospheric': 'flat grey sky, dry environment, no atmosphere, low detail backgrounds',
+  'Lanthimos / Surreal': 'normal perspective, natural framing, conventional composition, expected angles',
+  'Nolan / IMAX Realism': 'heavy color grading, artificial look, fantasy elements, obvious CGI',
+  'Noir / High Contrast': 'color saturation, flat even lighting, cheerful mood, soft light'
+};
+
+const universalNegative = 'extra fingers, missing fingers, fewer than 5 fingers, fused hands, deformed hands, extra limbs, floating limbs, broken spine, twisted joints, plastic skin, poreless face, airbrushed texture, perfect symmetry, cartoon style, anime, illustration, 3D render, watermark, text overlay, logo, overexposed highlights, muddy colors, jpeg artifacts, blurry subject';
+
+function buildPrompt() {
+  const desc = document.getElementById('description').value.trim();
+  const aData = aestheticData[state.aesthetic] || {};
+  const lData = lightingData[state.lighting] || '';
+  const lensD = lensData[state.lens] || '';
+  const moodD = moodAtmos[state.mood] || '';
+  const negAes = negativeByAesthetic[state.aesthetic] || '';
+
+  const modelNote = {
+    'ChatGPT Image 1.5': `Shot on Arri Alexa 35 with ${state.lens.split('—')[0].trim()}`,
+    'Nano Banana Pro': `Create a photorealistic image of`,
+    'Grok Imagine': `Photorealistic cinematic image —`
+  }[state.model] || 'Photorealistic cinematic image —';
+
+  const subjectLine = desc
+    ? `${desc}`
+    : `${state.subject} as primary subject`;
+
+  const mainPrompt = `${modelNote} ${subjectLine}.
+
+Setting and atmosphere: ${moodD}. ${aData.atmos || ''}.
+
+Lighting: ${lData}. Color grade — ${aData.grade || ''}.
+
+Lens and camera: ${lensD}. Slight 1-2 degree camera tilt off-axis, natural asymmetric framing, subject placed on left or right third of frame.
+
+Surface and material detail: ${aData.texture || ''}. Every visible surface shows material-accurate roughness variation, micro-texture, age-appropriate wear. Contact shadows present at all object intersections. No floating elements.
+
+Imperfections (mandatory): Flyaway hairs or loose strands, micro-blemishes on skin, slight chromatic aberration on high-contrast edges, edge vignette (soft, natural), visible film grain in shadow areas, uneven lighting falloff, blown highlights on practical light sources, deep shadow crush in corners, asymmetric facial features, worn surface details.
+
+Physical realism: Exactly 5 fingers per hand. Logical joint angles. Subsurface scattering on skin (red-yellow mix, not uniform). Atmospheric depth with particles or haze. No studio gradients.
+
+Style reference: ${state.aesthetic.split(' / ')[0]} visual language. ${state.model} optimized.`;
+
+  const negPrompt = `${universalNegative}, ${negAes}, perfect lighting, symmetrical face, studio aesthetic, clean background, flawless skin, perfectly styled hair, pristine environment, stunning, beautiful, masterpiece, 8K, ultra-HD, perfect, award-winning`;
+
+  return { mainPrompt, negPrompt };
+}
+
+function forge() {
+  const { mainPrompt, negPrompt } = buildPrompt();
+
+  document.getElementById('form-section').style.display = 'none';
+  document.getElementById('result-section').style.display = 'block';
+
+  document.getElementById('result-label').textContent = `PROMPT READY — ${state.model.toUpperCase()}`;
+  document.getElementById('result-title').textContent =
+    `${state.aesthetic.split(' / ')[0]} × ${state.mood.split(' / ')[0]}`;
+
+  document.getElementById('main-prompt').textContent = mainPrompt;
+  document.getElementById('neg-prompt').textContent = negPrompt;
+
+  // Tags
+  const tagsEl = document.getElementById('tags');
+  tagsEl.innerHTML = '';
+  [state.subject, state.aesthetic.split(' / ')[0], state.lighting, state.lens.split('—')[0].trim(), state.model]
+    .forEach(t => {
+      const span = document.createElement('span');
+      span.className = 'tag';
+      span.textContent = t;
+      tagsEl.appendChild(span);
+    });
+
+  window._fullPrompt = mainPrompt + '\n\n---NEGATIVE PROMPT---\n' + negPrompt;
+  window.scrollTo(0, 0);
+}
+
+function copyPrompt() {
+  navigator.clipboard.writeText(window._fullPrompt || '').then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '✓ COPIED TO CLIPBOARD';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '⊕ COPY FULL PROMPT';
+      btn.classList.remove('copied');
+    }, 2500);
+  });
+}
+
+function goBack() {
+  document.getElementById('result-section').style.display = 'none';
+  document.getElementById('form-section').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>
