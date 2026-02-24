@@ -717,23 +717,37 @@ function buildPrompt() {
     'Grok Imagine': `Photorealistic cinematic image —`
   }[state.model] || 'Photorealistic cinematic image —';
 
-  const subjectLine = desc
-    ? `${desc}`
-    : `${state.subject} as primary subject`;
+  const hasHumanContext = /portrait|human|person|people|man|woman|face|figure|character|subject/i.test(`${state.subject} ${desc}`);
+  const descriptionBase = desc || `${state.subject} as primary subject`;
+  const needsExpansion = descriptionBase.length < 30;
+  const postureDetail = hasHumanContext ? 'Their posture is relaxed yet attentive.' : '';
+  const environmentDetails = 'A soft ambient texture fills the air, and subtle background depth keeps the scene grounded.';
+  const behaviorDetail = 'There is a quiet sense of lived-in motion.';
+  const sceneDescription = needsExpansion
+    ? [descriptionBase, postureDetail, environmentDetails, behaviorDetail].filter(Boolean).join(' ')
+    : descriptionBase;
 
-  const mainPrompt = `${modelNote} ${subjectLine}.
+  const imperfectDetails = [
+    'flyaway hairs or loose strands',
+    'slight chromatic aberration on high-contrast edges',
+    'soft film grain in shadow areas'
+  ];
 
-Setting and atmosphere: ${moodD}. ${aData.atmos || ''}.
+  const mainPrompt = `${modelNote}
 
-Lighting: ${lData}. Color grade — ${aData.grade || ''}.
+${sceneDescription}.
 
-Lens and camera: ${lensD}. Slight 1-2 degree camera tilt off-axis, natural asymmetric framing, subject placed on left or right third of frame.
+Mood and atmosphere: ${moodD || aData.atmos || 'cinematic emotional clarity with natural atmosphere'}.
 
-Surface and material detail: ${aData.texture || ''}. Every visible surface shows material-accurate roughness variation, micro-texture, age-appropriate wear. Contact shadows present at all object intersections. No floating elements.
+Lighting and grade: ${lData || 'motivated practical lighting with natural falloff'}${aData.grade ? `, with ${aData.grade}` : ''}.
 
-Imperfections (mandatory): Flyaway hairs or loose strands, micro-blemishes on skin, slight chromatic aberration on high-contrast edges, edge vignette (soft, natural), visible film grain in shadow areas, uneven lighting falloff, blown highlights on practical light sources, deep shadow crush in corners, asymmetric facial features, worn surface details.
+Lens and framing: ${lensD || 'natural lens perspective with balanced depth'}, slight off-axis framing and asymmetrical composition.
 
-Physical realism: Exactly 5 fingers per hand. Logical joint angles. Subsurface scattering on skin (red-yellow mix, not uniform). Atmospheric depth with particles or haze. No studio gradients.
+Surface realism: ${aData.texture || 'Material textures feel tactile and physically grounded'}; preserve contact shadows, age-appropriate wear, and non-floating object relationships.
+
+Imperfections (subtle): ${imperfectDetails.join(', ')}.
+
+Physical realism: Exactly 5 fingers per hand, logical joint angles, and believable subsurface scattering with atmospheric depth.
 
 Style reference: ${state.aesthetic.split(' / ')[0]} visual language. ${state.model} optimized.`;
 
