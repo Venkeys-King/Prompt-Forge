@@ -5,730 +5,1224 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PromptForge — AI Image Prompt Generator</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teal:#00b4a0;--orange:#dc6420;--bg:#080a0f;--bg2:#0d1018;
+  --bg3:#111520;--border:#1e2230;--text:#e8e0d0;--muted:#6a6055;
+  --dim:#2a2f3a;--warn:#c4a020;--error:#c43020;
+}
+body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:0.45}
+.glow-t{position:fixed;top:-200px;left:-100px;width:600px;height:600px;background:radial-gradient(circle,rgba(0,180,160,0.05) 0%,transparent 70%);pointer-events:none;z-index:0}
+.glow-o{position:fixed;bottom:-150px;right:-100px;width:500px;height:500px;background:radial-gradient(circle,rgba(220,100,30,0.06) 0%,transparent 70%);pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:800px;margin:0 auto;padding:56px 24px 100px}
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* Header */
+.eyebrow{text-align:center;letter-spacing:.4em;font-size:10px;color:var(--teal);text-transform:uppercase;margin-bottom:14px}
+h1{font-family:'Playfair Display',serif;font-size:clamp(36px,7vw,58px);font-weight:400;text-align:center;line-height:1.05;letter-spacing:-.02em;color:#f0e8d8;margin-bottom:10px}
+h1 em{color:var(--orange);font-style:italic}
+.subtitle{text-align:center;color:var(--muted);font-size:11px;letter-spacing:.08em;margin-bottom:52px}
 
-  :root {
-    --teal: #00b4a0;
-    --orange: #dc6420;
-    --bg: #080a0f;
-    --bg2: #0d1018;
-    --bg3: #111520;
-    --border: #1e2230;
-    --text: #e8e0d0;
-    --muted: #6a6055;
-    --dim: #2a2f3a;
-  }
+/* Section label */
+.sec-label{font-size:10px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--border)}
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'JetBrains Mono', monospace;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+/* Intensity */
+.intensity-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:36px}
+.int-btn{padding:14px 8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;cursor:pointer;text-transform:uppercase;transition:all .2s;text-align:center}
+.int-btn .i-name{display:block;font-size:12px;margin-bottom:4px;letter-spacing:.05em}
+.int-btn .i-desc{display:block;font-size:9px;color:var(--dim);letter-spacing:.08em}
+.int-btn.active{background:#1a2535;border-color:var(--teal);color:var(--teal)}
+.int-btn.active .i-desc{color:#3a6060}
 
-  /* Grain */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.5;
-  }
+/* Description */
+.desc-wrap{position:relative;margin-bottom:8px}
+textarea{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;color:var(--text);font-size:13px;font-family:'Playfair Display',serif;resize:vertical;outline:none;line-height:1.7;transition:border-color .2s}
+textarea:focus{border-color:var(--teal)}
+textarea::placeholder{color:var(--dim)}
+.desc-hint{font-size:10px;color:var(--dim);letter-spacing:.08em;margin-bottom:28px;min-height:16px;transition:color .3s}
+.desc-hint.active{color:#3a6050}
 
-  /* Ambient glows */
-  body::after {
-    content: '';
-    position: fixed;
-    top: -200px; left: -100px;
-    width: 600px; height: 600px;
-    background: radial-gradient(circle, rgba(0,180,160,0.05) 0%, transparent 70%);
-    pointer-events: none;
-    z-index: 0;
-  }
+/* Chips */
+.options-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-bottom:32px}
+.opt-group{display:flex;flex-direction:column}
+.opt-group.full{grid-column:1/-1}
+.group-label{font-size:9px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:7px;display:flex;align-items:center;gap:6px}
+.group-label::after{content:'';flex:1;height:1px;background:var(--border)}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{padding:7px 13px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all .15s;white-space:nowrap}
+.chip:hover{border-color:#2a3040;color:#9a9080}
+.chip.selected{background:rgba(0,180,160,.1);border-color:var(--teal);color:var(--teal)}
+.chip.soft-conflict{background:rgba(196,160,32,.07);border-color:var(--warn);color:var(--warn)}
+.chip.hard-conflict{background:rgba(196,48,32,.07);border-color:var(--error);color:var(--error)}
 
-  .glow-orange {
-    position: fixed;
-    bottom: -150px; right: -100px;
-    width: 500px; height: 500px;
-    background: radial-gradient(circle, rgba(220,100,30,0.06) 0%, transparent 70%);
-    pointer-events: none;
-    z-index: 0;
-  }
+/* Conflict banner */
+.conflict-banner{display:none;border-radius:8px;padding:14px 18px;margin-bottom:20px}
+.cb-soft{background:rgba(196,160,32,.08);border:1px solid rgba(196,160,32,.3)}
+.cb-hard{background:rgba(196,48,32,.08);border:1px solid rgba(196,48,32,.3)}
+.cb-phil{background:rgba(0,180,160,.06);border:1px solid rgba(0,180,160,.2)}
+.conflict-ttl{font-size:10px;letter-spacing:.2em;margin-bottom:6px}
+.cb-soft .conflict-ttl{color:var(--warn)}
+.cb-hard .conflict-ttl{color:var(--error)}
+.cb-phil .conflict-ttl{color:var(--teal)}
+.conflict-msg{font-size:12px;color:#a09070;line-height:1.6}
+.cb-hard .conflict-msg{color:#a07060}
+.cb-phil .conflict-msg{color:#5a8080}
+.conflict-action{display:inline-block;margin-top:10px;font-size:10px;letter-spacing:.1em;color:var(--teal);cursor:pointer;text-decoration:underline}
 
-  .container {
-    position: relative;
-    z-index: 1;
-    max-width: 780px;
-    margin: 0 auto;
-    padding: 56px 24px 100px;
-  }
+/* Forge */
+.divider{border:none;border-top:1px solid var(--border);margin:28px 0}
+.btn-forge{width:100%;padding:18px;background:linear-gradient(135deg,var(--teal),#009688);border:none;border-radius:10px;color:var(--bg);font-size:12px;letter-spacing:.2em;font-family:'JetBrains Mono',monospace;font-weight:700;cursor:pointer;text-transform:uppercase;transition:all .2s}
+.btn-forge:disabled{background:var(--bg3);color:var(--dim);cursor:not-allowed}
+.btn-forge:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 8px 30px rgba(0,180,160,.2)}
+.counter{text-align:center;font-size:10px;color:var(--dim);margin-top:10px;letter-spacing:.1em}
 
-  /* Header */
-  .eyebrow {
-    text-align: center;
-    letter-spacing: 0.4em;
-    font-size: 10px;
-    color: var(--teal);
-    text-transform: uppercase;
-    margin-bottom: 14px;
-  }
+/* Result */
+#result-section{display:none}
+.result-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;gap:16px}
+.result-meta{font-size:10px;color:var(--teal);letter-spacing:.25em;margin-bottom:5px}
+.result-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:400;color:#f0e8d8}
+.btn-back{padding:8px 16px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:10px;cursor:pointer;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;white-space:nowrap;transition:all .2s;flex-shrink:0}
+.btn-back:hover{border-color:var(--muted)}
 
-  h1 {
-    font-family: 'Playfair Display', serif;
-    font-size: clamp(36px, 7vw, 58px);
-    font-weight: 400;
-    text-align: center;
-    line-height: 1.05;
-    letter-spacing: -0.02em;
-    color: #f0e8d8;
-    margin-bottom: 10px;
-  }
+/* Format tabs */
+.format-tabs{display:flex;gap:6px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:4px;margin-bottom:20px}
+.fmt-tab{flex:1;padding:8px;background:transparent;border:1px solid transparent;border-radius:6px;color:var(--dim);font-size:10px;letter-spacing:.1em;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:all .2s;text-transform:uppercase}
+.fmt-tab.active{background:#1a2535;border-color:var(--teal);color:var(--teal)}
 
-  h1 em {
-    color: var(--orange);
-    font-style: italic;
-  }
+/* Scene preview */
+.scene-preview{background:rgba(0,180,160,.04);border:1px solid rgba(0,180,160,.15);border-radius:8px;padding:14px 18px;margin-bottom:14px}
+.scene-preview-label{font-size:9px;letter-spacing:.2em;color:var(--teal);margin-bottom:8px}
+.scene-preview-text{font-size:12px;color:#7a9090;line-height:1.7;font-family:'Playfair Display',serif;font-style:italic}
 
-  .subtitle {
-    text-align: center;
-    color: var(--muted);
-    font-size: 12px;
-    letter-spacing: 0.08em;
-    margin-bottom: 52px;
-  }
+/* Prompt boxes */
+.prompt-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:28px;margin-bottom:14px;position:relative}
+.box-label{position:absolute;top:14px;right:18px;font-size:9px;color:var(--dim);letter-spacing:.2em}
+.prompt-text{font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.9;color:#c8c0b0;white-space:pre-wrap;word-break:break-word}
+.neg-box{background:#0a0c10;border:1px solid #141820;border-radius:10px;padding:18px 24px;margin-bottom:14px;display:none}
+.neg-label{font-size:9px;color:var(--orange);letter-spacing:.2em;margin-bottom:8px}
+.neg-text{font-size:11px;color:#3a3530;line-height:1.7;font-family:'JetBrains Mono',monospace}
 
-  /* Model Tabs */
-  .model-tabs {
-    display: flex;
-    gap: 6px;
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 4px;
-    margin-bottom: 32px;
-  }
+/* Notes */
+.result-notes{margin-bottom:16px}
+.result-note{background:rgba(196,160,32,.06);border:1px solid rgba(196,160,32,.2);border-radius:6px;padding:10px 14px;margin-bottom:8px;font-size:11px;color:#a09070;line-height:1.5}
+.result-note.info{background:rgba(0,180,160,.05);border-color:rgba(0,180,160,.15);color:#5a8080}
 
-  .tab {
-    flex: 1;
-    padding: 10px 8px;
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 7px;
-    color: var(--dim);
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    font-family: 'JetBrains Mono', monospace;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-transform: uppercase;
-  }
+/* Tags */
+.tags{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:24px}
+.tag{padding:4px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:20px;font-size:10px;color:#2a2f3a;letter-spacing:.05em}
+.tag.hi{border-color:#1a3530;color:#2a5550}
 
-  .tab.active {
-    background: #1a2535;
-    border-color: var(--teal);
-    color: var(--teal);
-  }
+/* Actions */
+.actions{display:flex;gap:10px}
+.btn-copy{flex:1;padding:16px;background:linear-gradient(135deg,var(--teal),#009688);border:none;border-radius:8px;color:var(--bg);font-size:11px;letter-spacing:.2em;font-family:'JetBrains Mono',monospace;font-weight:700;cursor:pointer;text-transform:uppercase;transition:all .2s}
+.btn-copy.copied{background:linear-gradient(135deg,var(--orange),#b84d10)}
+.btn-remix{padding:16px 22px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:11px;letter-spacing:.1em;font-family:'JetBrains Mono',monospace;cursor:pointer;text-transform:uppercase;transition:all .2s}
+.btn-remix:hover{border-color:var(--muted)}
+.footer{margin-top:72px;border-top:1px solid #0d1018;padding-top:24px;text-align:center;font-size:10px;color:#1a1f2a;letter-spacing:.2em}
 
-  /* Description */
-  .field-label {
-    font-size: 10px;
-    letter-spacing: 0.18em;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-bottom: 8px;
-    display: block;
-  }
-
-  textarea {
-    width: 100%;
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 14px 16px;
-    color: var(--text);
-    font-size: 13px;
-    font-family: 'Playfair Display', serif;
-    resize: vertical;
-    outline: none;
-    line-height: 1.7;
-    transition: border-color 0.2s;
-    margin-bottom: 28px;
-  }
-
-  textarea:focus { border-color: var(--teal); }
-  textarea::placeholder { color: var(--dim); }
-
-  /* Options Grid */
-  .options-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-    margin-bottom: 32px;
-  }
-
-  .option-group { display: flex; flex-direction: column; }
-  .option-group.full { grid-column: 1 / -1; }
-
-  .chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 7px;
-    margin-top: 4px;
-  }
-
-  .chip {
-    padding: 7px 13px;
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--muted);
-    font-size: 11px;
-    cursor: pointer;
-    font-family: 'JetBrains Mono', monospace;
-    transition: all 0.15s;
-    white-space: nowrap;
-  }
-
-  .chip:hover { border-color: #2a3040; color: #9a9080; }
-
-  .chip.selected {
-    background: rgba(0,180,160,0.1);
-    border-color: var(--teal);
-    color: var(--teal);
-  }
-
-  /* Divider */
-  .divider {
-    border: none;
-    border-top: 1px solid var(--border);
-    margin: 32px 0;
-  }
-
-  /* Generate Button */
-  .btn-forge {
-    width: 100%;
-    padding: 18px;
-    background: linear-gradient(135deg, var(--teal), #009688);
-    border: none;
-    border-radius: 10px;
-    color: var(--bg);
-    font-size: 12px;
-    letter-spacing: 0.2em;
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 700;
-    cursor: pointer;
-    text-transform: uppercase;
-    transition: all 0.2s;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .btn-forge:disabled {
-    background: var(--bg3);
-    color: var(--dim);
-    cursor: not-allowed;
-  }
-
-  .btn-forge:not(:disabled):hover {
-    transform: translateY(-1px);
-    box-shadow: 0 8px 30px rgba(0,180,160,0.2);
-  }
-
-  .counter {
-    text-align: center;
-    font-size: 10px;
-    color: var(--dim);
-    margin-top: 10px;
-    letter-spacing: 0.1em;
-  }
-
-  /* Result */
-  #result-section { display: none; }
-
-  .result-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 24px;
-  }
-
-  .result-label {
-    font-size: 10px;
-    color: var(--teal);
-    letter-spacing: 0.25em;
-    margin-bottom: 5px;
-  }
-
-  .result-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 22px;
-    font-weight: 400;
-    color: #f0e8d8;
-  }
-
-  .btn-back {
-    padding: 8px 16px;
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--muted);
-    font-size: 10px;
-    cursor: pointer;
-    font-family: 'JetBrains Mono', monospace;
-    letter-spacing: 0.1em;
-    white-space: nowrap;
-    transition: all 0.2s;
-  }
-
-  .btn-back:hover { border-color: var(--muted); }
-
-  .prompt-box {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 28px;
-    margin-bottom: 14px;
-    position: relative;
-  }
-
-  .box-label {
-    position: absolute;
-    top: 14px; right: 18px;
-    font-size: 9px;
-    color: var(--dim);
-    letter-spacing: 0.2em;
-  }
-
-  .prompt-text {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
-    line-height: 1.9;
-    color: #c8c0b0;
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
-
-  .neg-box {
-    background: #0a0c10;
-    border: 1px solid #141820;
-    border-radius: 10px;
-    padding: 18px 24px;
-    margin-bottom: 14px;
-  }
-
-  .neg-label {
-    font-size: 9px;
-    color: var(--orange);
-    letter-spacing: 0.2em;
-    margin-bottom: 8px;
-  }
-
-  .neg-text {
-    font-size: 12px;
-    color: #3a3530;
-    line-height: 1.7;
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  /* Tags */
-  .tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 7px;
-    margin-bottom: 24px;
-  }
-
-  .tag {
-    padding: 4px 12px;
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    font-size: 10px;
-    color: #2a2f3a;
-    letter-spacing: 0.05em;
-  }
-
-  /* Action buttons */
-  .actions { display: flex; gap: 10px; }
-
-  .btn-copy {
-    flex: 1;
-    padding: 16px;
-    background: linear-gradient(135deg, var(--teal), #009688);
-    border: none;
-    border-radius: 8px;
-    color: var(--bg);
-    font-size: 11px;
-    letter-spacing: 0.2em;
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 700;
-    cursor: pointer;
-    text-transform: uppercase;
-    transition: all 0.2s;
-  }
-
-  .btn-copy.copied {
-    background: linear-gradient(135deg, var(--orange), #b84d10);
-  }
-
-  .btn-remix {
-    padding: 16px 22px;
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--muted);
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    font-family: 'JetBrains Mono', monospace;
-    cursor: pointer;
-    text-transform: uppercase;
-    transition: all 0.2s;
-  }
-
-  .btn-remix:hover { border-color: var(--muted); }
-
-  /* Footer */
-  .footer {
-    margin-top: 72px;
-    border-top: 1px solid #0d1018;
-    padding-top: 24px;
-    text-align: center;
-    font-size: 10px;
-    color: #1a1f2a;
-    letter-spacing: 0.2em;
-  }
-
-  @media (max-width: 600px) {
-    .options-grid { grid-template-columns: 1fr; }
-    .option-group.full { grid-column: 1; }
-    .model-tabs { flex-direction: column; }
-  }
+@media(max-width:600px){
+  .options-grid{grid-template-columns:1fr}
+  .opt-group.full{grid-column:1}
+  .intensity-row{grid-template-columns:1fr}
+  .format-tabs{flex-direction:column}
+}
 </style>
 </head>
 <body>
-<div class="glow-orange"></div>
-<div class="container">
+<div class="glow-t"></div>
+<div class="glow-o"></div>
+<div class="wrap">
 
-  <!-- Header -->
-  <p class="eyebrow">AI Visual Studio — By Venkat</p>
-  <h1>Prompt<em>Forge</em></h1>
-  <p class="subtitle">Cinematic image prompts — built with director precision</p>
+<p class="eyebrow">AI Visual Studio — By Venkat</p>
+<h1>Prompt<em>Forge</em></h1>
+<p class="subtitle">Scene-first adaptive prompt intelligence — universal model support</p>
 
-  <!-- FORM SECTION -->
-  <div id="form-section">
+<!-- ═══ FORM ═══ -->
+<div id="form-section">
 
-    <!-- Model Tabs -->
-    <div class="model-tabs">
-      <button class="tab active" onclick="selectModel(this, 'ChatGPT Image 1.5')">ChatGPT Image 1.5</button>
-      <button class="tab" onclick="selectModel(this, 'Nano Banana Pro')">Nano Banana Pro</button>
-      <button class="tab" onclick="selectModel(this, 'Grok Imagine')">Grok Imagine</button>
-    </div>
-
-    <!-- Description -->
-    <label class="field-label">◈ Describe your idea (optional)</label>
-    <textarea id="description" rows="3" placeholder="e.g. A lone figure standing in a rainy alley at night, neon signs reflecting on wet pavement..."></textarea>
-
-    <!-- Options -->
-    <div class="options-grid">
-
-      <div class="option-group">
-        <span class="field-label">◈ Subject Type</span>
-        <div class="chips" id="subject">
-          <button class="chip" onclick="select(this,'subject')">Portrait / Human</button>
-          <button class="chip" onclick="select(this,'subject')">Landscape / Environment</button>
-          <button class="chip" onclick="select(this,'subject')">Urban / City</button>
-          <button class="chip" onclick="select(this,'subject')">Abstract / Conceptual</button>
-          <button class="chip" onclick="select(this,'subject')">Architecture</button>
-          <button class="chip" onclick="select(this,'subject')">Creature / Animal</button>
-          <button class="chip" onclick="select(this,'subject')">Product / Object</button>
-        </div>
-      </div>
-
-      <div class="option-group">
-        <span class="field-label">◉ Aesthetic Direction</span>
-        <div class="chips" id="aesthetic">
-          <button class="chip" onclick="select(this,'aesthetic')">Joker / Psychological Grit</button>
-          <button class="chip" onclick="select(this,'aesthetic')">Villeneuve / Epic Scale</button>
-          <button class="chip" onclick="select(this,'aesthetic')">Retrofuturism / Lo-fi Sci-fi</button>
-          <button class="chip" onclick="select(this,'aesthetic')">Makoto Shinkai / Atmospheric</button>
-          <button class="chip" onclick="select(this,'aesthetic')">Lanthimos / Surreal</button>
-          <button class="chip" onclick="select(this,'aesthetic')">Nolan / IMAX Realism</button>
-          <button class="chip" onclick="select(this,'aesthetic')">Noir / High Contrast</button>
-        </div>
-      </div>
-
-      <div class="option-group">
-        <span class="field-label">◌ Mood</span>
-        <div class="chips" id="mood">
-          <button class="chip" onclick="select(this,'mood')">Melancholic / Lonely</button>
-          <button class="chip" onclick="select(this,'mood')">Tense / Psychological</button>
-          <button class="chip" onclick="select(this,'mood')">Hopeful / Golden</button>
-          <button class="chip" onclick="select(this,'mood')">Eerie / Unsettling</button>
-          <button class="chip" onclick="select(this,'mood')">Epic / Grand</button>
-          <button class="chip" onclick="select(this,'mood')">Intimate / Quiet</button>
-          <button class="chip" onclick="select(this,'mood')">Meditative / Still</button>
-        </div>
-      </div>
-
-      <div class="option-group">
-        <span class="field-label">◎ Lighting</span>
-        <div class="chips" id="lighting">
-          <button class="chip" onclick="select(this,'lighting')">Golden Hour (3200K)</button>
-          <button class="chip" onclick="select(this,'lighting')">Blue Hour / Dusk</button>
-          <button class="chip" onclick="select(this,'lighting')">Harsh Fluorescent</button>
-          <button class="chip" onclick="select(this,'lighting')">Neon Urban Night</button>
-          <button class="chip" onclick="select(this,'lighting')">Soft Window Light</button>
-          <button class="chip" onclick="select(this,'lighting')">Firelight / Candlelight</button>
-          <button class="chip" onclick="select(this,'lighting')">High Contrast Noir</button>
-        </div>
-      </div>
-
-      <div class="option-group full">
-        <span class="field-label">◍ Lens / Focal Length</span>
-        <div class="chips" id="lens">
-          <button class="chip" onclick="select(this,'lens')">24mm — Wide, Immersive</button>
-          <button class="chip" onclick="select(this,'lens')">35mm — Documentary, Natural</button>
-          <button class="chip" onclick="select(this,'lens')">50mm — Human Eye</button>
-          <button class="chip" onclick="select(this,'lens')">85mm — Portrait, Intimate</button>
-          <button class="chip" onclick="select(this,'lens')">135mm — Compressed, Voyeur</button>
-          <button class="chip" onclick="select(this,'lens')">Macro — Extreme Detail</button>
-        </div>
-      </div>
-
-    </div>
-
-    <hr class="divider">
-
-    <button class="btn-forge" id="forge-btn" onclick="forge()" disabled>
-      Select All 5 Options to Forge
+  <!-- Intensity -->
+  <p class="sec-label">Prompt Intensity</p>
+  <div class="intensity-row">
+    <button class="int-btn" onclick="setIntensity(this,'minimal')">
+      <span class="i-name">Minimal</span>
+      <span class="i-desc">Clean · Essential</span>
     </button>
-    <p class="counter" id="counter">0 / 5 selected</p>
-
+    <button class="int-btn active" onclick="setIntensity(this,'balanced')">
+      <span class="i-name">Balanced</span>
+      <span class="i-desc">Cinematic · Structured</span>
+    </button>
+    <button class="int-btn" onclick="setIntensity(this,'director')">
+      <span class="i-name">Director Mode</span>
+      <span class="i-desc">Full PBR · Maximum depth</span>
+    </button>
   </div>
 
-  <!-- RESULT SECTION -->
-  <div id="result-section">
-    <div class="result-header">
-      <div>
-        <div class="result-label" id="result-label">PROMPT READY</div>
-        <div class="result-title" id="result-title">—</div>
+  <!-- Description -->
+  <p class="sec-label">Describe Your Scene</p>
+  <div class="desc-wrap">
+    <textarea id="description" rows="3"
+      placeholder="e.g. Tamil women in tea shop, or: a lone figure standing in a rainy Tokyo alley at night..."
+      oninput="onDescInput(this)"></textarea>
+  </div>
+  <div class="desc-hint" id="desc-hint">Scene expansion: type to begin</div>
+
+  <!-- Conflict Banner -->
+  <div class="conflict-banner" id="conflict-banner">
+    <div class="conflict-ttl" id="conflict-ttl"></div>
+    <div class="conflict-msg" id="conflict-msg"></div>
+    <span class="conflict-action" id="conflict-action" onclick="overrideConflict()"></span>
+  </div>
+
+  <!-- Options -->
+  <p class="sec-label">Visual Parameters</p>
+  <div class="options-grid">
+
+    <div class="opt-group">
+      <span class="group-label">Subject Type</span>
+      <div class="chips" id="subject">
+        <button class="chip" onclick="pick(this,'subject')">Portrait · Human</button>
+        <button class="chip" onclick="pick(this,'subject')">Landscape · Environment</button>
+        <button class="chip" onclick="pick(this,'subject')">Urban · City</button>
+        <button class="chip" onclick="pick(this,'subject')">Architecture</button>
+        <button class="chip" onclick="pick(this,'subject')">Product · Object</button>
+        <button class="chip" onclick="pick(this,'subject')">Creature · Animal</button>
+        <button class="chip" onclick="pick(this,'subject')">Abstract · Conceptual</button>
       </div>
-      <button class="btn-back" onclick="goBack()">← NEW PROMPT</button>
     </div>
 
-    <div class="prompt-box">
-      <span class="box-label">MAIN PROMPT</span>
-      <div class="prompt-text" id="main-prompt"></div>
+    <div class="opt-group">
+      <span class="group-label">Aesthetic Direction</span>
+      <div class="chips" id="aesthetic">
+        <button class="chip" onclick="pick(this,'aesthetic')">Joker · Psychological Grit</button>
+        <button class="chip" onclick="pick(this,'aesthetic')">Villeneuve · Epic Scale</button>
+        <button class="chip" onclick="pick(this,'aesthetic')">Retrofuturism · Lo-fi Sci-fi</button>
+        <button class="chip" onclick="pick(this,'aesthetic')">Makoto Shinkai · Atmospheric</button>
+        <button class="chip" onclick="pick(this,'aesthetic')">Lanthimos · Surreal</button>
+        <button class="chip" onclick="pick(this,'aesthetic')">Nolan · IMAX Realism</button>
+        <button class="chip" onclick="pick(this,'aesthetic')">Noir · High Contrast</button>
+        <button class="chip" onclick="pick(this,'aesthetic')">Documentary · Raw</button>
+      </div>
     </div>
 
-    <div class="neg-box">
-      <div class="neg-label">NEGATIVE PROMPT</div>
-      <div class="neg-text" id="neg-prompt"></div>
+    <div class="opt-group">
+      <span class="group-label">Mood</span>
+      <div class="chips" id="mood">
+        <button class="chip" onclick="pick(this,'mood')">Melancholic · Lonely</button>
+        <button class="chip" onclick="pick(this,'mood')">Tense · Psychological</button>
+        <button class="chip" onclick="pick(this,'mood')">Hopeful · Golden</button>
+        <button class="chip" onclick="pick(this,'mood')">Eerie · Unsettling</button>
+        <button class="chip" onclick="pick(this,'mood')">Epic · Grand</button>
+        <button class="chip" onclick="pick(this,'mood')">Intimate · Quiet</button>
+        <button class="chip" onclick="pick(this,'mood')">Meditative · Still</button>
+        <button class="chip" onclick="pick(this,'mood')">Raw · Urgent</button>
+      </div>
     </div>
 
-    <div class="tags" id="tags"></div>
-
-    <div class="actions">
-      <button class="btn-copy" id="copy-btn" onclick="copyPrompt()">⊕ COPY FULL PROMPT</button>
-      <button class="btn-remix" onclick="goBack()">↺ REMIX</button>
+    <div class="opt-group">
+      <span class="group-label">Lighting</span>
+      <div class="chips" id="lighting">
+        <button class="chip" onclick="pick(this,'lighting')">Golden Hour · 3200K</button>
+        <button class="chip" onclick="pick(this,'lighting')">Blue Hour · Dusk</button>
+        <button class="chip" onclick="pick(this,'lighting')">Harsh Fluorescent</button>
+        <button class="chip" onclick="pick(this,'lighting')">Neon Urban Night</button>
+        <button class="chip" onclick="pick(this,'lighting')">Soft Window Light</button>
+        <button class="chip" onclick="pick(this,'lighting')">Firelight · Candlelight</button>
+        <button class="chip" onclick="pick(this,'lighting')">High Contrast Noir</button>
+        <button class="chip" onclick="pick(this,'lighting')">Overcast · Flat Natural</button>
+      </div>
     </div>
+
+    <div class="opt-group full">
+      <span class="group-label">Lens · Focal Length</span>
+      <div class="chips" id="lens">
+        <button class="chip" onclick="pick(this,'lens')">14–24mm · Ultra Wide</button>
+        <button class="chip" onclick="pick(this,'lens')">35mm · Documentary</button>
+        <button class="chip" onclick="pick(this,'lens')">50mm · Human Eye</button>
+        <button class="chip" onclick="pick(this,'lens')">85mm · Portrait</button>
+        <button class="chip" onclick="pick(this,'lens')">135mm · Telephoto</button>
+        <button class="chip" onclick="pick(this,'lens')">Macro · Extreme Detail</button>
+      </div>
+    </div>
+
   </div>
 
-  <div class="footer">PROMPTFORGE — AI VISUAL STUDIO — BUILT BY VENKAT</div>
+  <hr class="divider">
+  <button class="btn-forge" id="forge-btn" onclick="forge()" disabled>Select All 5 Options</button>
+  <p class="counter" id="counter">0 / 5 selected</p>
+</div>
+
+<!-- ═══ RESULT ═══ -->
+<div id="result-section">
+  <div class="result-header">
+    <div>
+      <div class="result-meta" id="result-meta">PROMPT READY</div>
+      <div class="result-title" id="result-title">—</div>
+    </div>
+    <button class="btn-back" onclick="goBack()">← NEW</button>
+  </div>
+
+  <div class="format-tabs">
+    <button class="fmt-tab active" onclick="setFormat(this,'standard')">Standard</button>
+    <button class="fmt-tab" onclick="setFormat(this,'with-negative')">With Negative</button>
+    <button class="fmt-tab" onclick="setFormat(this,'director')">Director Mode</button>
+  </div>
+
+  <div class="result-notes" id="result-notes"></div>
+
+  <div class="scene-preview" id="scene-preview" style="display:none">
+    <div class="scene-preview-label">SCENE EXPANSION LAYER</div>
+    <div class="scene-preview-text" id="scene-preview-text"></div>
+  </div>
+
+  <div class="prompt-box">
+    <span class="box-label" id="box-label">MAIN PROMPT</span>
+    <div class="prompt-text" id="main-prompt-text"></div>
+  </div>
+
+  <div class="neg-box" id="neg-box">
+    <div class="neg-label">NEGATIVE PROMPT</div>
+    <div class="neg-text" id="neg-prompt-text"></div>
+  </div>
+
+  <div class="tags" id="result-tags"></div>
+
+  <div class="actions">
+    <button class="btn-copy" id="copy-btn" onclick="doCopy()">⊕ COPY PROMPT</button>
+    <button class="btn-remix" onclick="goBack()">↺ REMIX</button>
+  </div>
+</div>
+
+<div class="footer">PROMPTFORGE V3 · SCENE-FIRST ADAPTIVE INTELLIGENCE · BY VENKAT</div>
 </div>
 
 <script>
-const state = {
-  model: 'ChatGPT Image 1.5',
-  subject: '', aesthetic: '', mood: '', lighting: '', lens: '',
-  description: ''
+// ═══════════════════════════════════════════════════════════
+// DATA LAYER
+// ═══════════════════════════════════════════════════════════
+
+// ── SCENE EXPANSION RULES ──────────────────────────────────
+
+const PLURALITY_RULES = {
+  single: {
+    postures: [
+      'seated with weight shifted slightly to one side, posture unselfconscious',
+      'standing in three-quarter profile, body angled away from camera',
+      'leaning against a surface with the ease of someone at rest in a familiar place'
+    ],
+    gestures: [
+      'hands occupied — holding a cup, cloth, or object — mid-action, not posed',
+      'gaze directed off-frame at something specific, not performing awareness of camera',
+      'one hand resting on surface, other at rest in lap — caught between actions'
+    ]
+  },
+  group: {
+    relational: [
+      'one speaks, the others listen at different levels of attention — one distracted, one fully present',
+      'physical proximity suggesting long familiarity — bodies comfortable in shared space without performance',
+      'each person in a separate internal moment despite occupying the same frame'
+    ],
+    spatial: [
+      'bodies overlapping slightly — natural density, not arranged',
+      'varied orientations and heights — organic clustering, not posed symmetry',
+      'negative space between figures revealing relational distance'
+    ]
+  }
 };
 
-function selectModel(el, model) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  state.model = model;
+const ENV_RULES = {
+  'tea shop': {
+    props: [
+      'worn steel or ceramic cups on formica surface with old condensation rings',
+      'stacked glasses near the counter, light refracting through them',
+      'sugar bowl with encrusted rim from years of use',
+      'cloth towel draped over a shoulder or counter edge'
+    ],
+    light: [
+      'warm 3000K tungsten overhead mixing with cooler daylight bleeding through entrance',
+      'steam rising from a vessel near the back — creating localized atmospheric diffusion in the light beam',
+      'backlit entrance silhouetting any figure near the door against exterior brightness'
+    ],
+    texture: [
+      'wall surface — whitewash or paint with moisture blooming at lower sections',
+      'floor — worn tile with grime settled into grout lines at high-traffic paths',
+      'ceiling — bare bulb or aged tube light with accumulated dust on the fixture'
+    ],
+    timeDefault: 'morning'
+  },
+  'street': {
+    props: [
+      'ground level detail — drain covers, cigarette ends, leaf debris collecting at the gutter',
+      'passing figures soft and indifferent in the background',
+      'overhead wires, signage, or awning edge intruding into frame top'
+    ],
+    light: [
+      'overhead midday sun creating harsh downward shadows beneath brow and chin',
+      'late afternoon raking light from the left casting long shadow geometry across the road surface',
+      'shop fronts as secondary sources spilling warm light onto pavement'
+    ],
+    texture: [
+      'road surface — tar cracks, old oil stains, water pooling in surface depressions',
+      'wall at frame edge — paint layered over paint, oldest coat visible at corners'
+    ],
+    timeDefault: 'afternoon'
+  },
+  'alley': {
+    props: [
+      'walls close enough that both sides are in frame',
+      'pipes, meters, or cables on walls at eye level',
+      'light source visible at alley exit — street or open sky'
+    ],
+    light: [
+      'narrow strip of sky overhead providing weak ambient fill',
+      'single practical source — lamp, lit window, distant streetlight — as primary key',
+      'strong shadow zones flanking any central lit area'
+    ],
+    texture: [
+      'wet ground — pooled water reflecting any available light source',
+      'wall surface — damp brick or concrete with moss at base'
+    ],
+    timeDefault: 'night'
+  },
+  'market': {
+    props: [
+      'produce or goods creating dense color and texture in foreground',
+      'vendor structures — crates, tables, hanging scales — at varying depths',
+      'fabric awning or tarpaulin creating colored shadow'
+    ],
+    light: [
+      'dappled light breaking through overhead cover, creating pools on merchandise and faces',
+      'early morning: low directional light angling under the stalls',
+      'practical shop lights adding warm accent against daylight'
+    ],
+    texture: [
+      'wet produce surface — droplets on vegetables, condensation on packed items',
+      'ground — wet from morning washing, footfall marks visible'
+    ],
+    timeDefault: 'morning'
+  },
+  'courtyard': {
+    props: [
+      'architectural framing — columns, arches, or doorways creating depth layers',
+      'ground — stone, earth, or old tile with wear patterns from foot traffic',
+      'plant or tree at edge providing organic break in geometry'
+    ],
+    light: [
+      'directional sunlight creating strong shadow geometry across ground plane',
+      'walls reflecting fill light softly into shadow areas',
+      'overhead open sky as soft diffused ambient'
+    ],
+    texture: [
+      'stone or plaster wall with moisture staining and plant growth at base corners',
+      'ground — worn smooth at path center, rougher at edges'
+    ],
+    timeDefault: 'afternoon'
+  },
+  'interior': {
+    props: [
+      'objects on nearest surface establishing domestic or functional context',
+      'depth layer — mid-ground furniture or partition',
+      'background — wall, window, or doorway establishing spatial limit'
+    ],
+    light: [
+      'window light as primary source — direction and quality depending on time of day',
+      'practical interior source as secondary — lamp, ceiling light, screen glow'
+    ],
+    texture: [
+      'floor surface — tile, wood, or concrete with use marks',
+      'wall — paint, plaster, or material with age showing at edges'
+    ],
+    timeDefault: 'day'
+  },
+  'forest': {
+    props: [
+      'tree trunks at varying distances creating depth recession',
+      'ground cover — leaves, roots, moss — with light touching selectively',
+      'upper canopy visible if wide enough lens'
+    ],
+    light: [
+      'god rays — shafts of light breaking through canopy at steep angle',
+      'strong ambient fill from diffused sky — soft shadows, no harsh directionality',
+      'volumetric light made visible by atmospheric moisture or dust'
+    ],
+    texture: [
+      'bark — rough texture with moss, lichen, age cracks',
+      'ground — damp earth with visible root system at surface'
+    ],
+    timeDefault: 'morning'
+  }
+};
+
+const CULTURAL_RULES = {
+  tamil: {
+    costumeDetail: [
+      'cotton saree — fabric weight creating natural drape folds, pinned at shoulder',
+      'bindi as single vivid color point on forehead',
+      'jasmine flowers in hair — white against dark, small bunches catching ambient light'
+    ],
+    envDetail: [
+      'South Indian vessel forms visible in environment — brass or steel, wide-bottomed',
+      'color palette of surfaces — ochre, terracotta, aged green paint',
+      'Tamil script on signage or board partially visible at frame edge'
+    ],
+    doNotInjectIfDescMentions: ['jeans','modern','contemporary','western','kurta']
+  },
+  japanese: {
+    costumeDetail: [
+      'fabric with restrained pattern — indigo or earth tone',
+      'understated layering suggesting season awareness'
+    ],
+    envDetail: [
+      'signage with kanji partially visible',
+      'material surfaces — wood, paper, metal — with particular attention to age patina'
+    ],
+    doNotInjectIfDescMentions: ['modern','office','contemporary']
+  }
+};
+
+const WEATHER_RULES = {
+  rain: {
+    material: [
+      'wet fabric — cotton or natural fiber appearing darker, heavier, clinging differently at shoulder and hem',
+      'hair — strands separated and clumped by moisture, darkened 1-2 tones from dry',
+      'all horizontal surfaces holding water — table edges, ground plane, any flat object'
+    ],
+    atmosphere: [
+      'rain-slicked ground surface reflecting available light source, multiplying it diffusely',
+      'atmosphere slightly grey-shifted — contrast reduced, edges softened',
+      'any exposed skin showing moisture sheen and dampness'
+    ],
+    lightMod: 'wet surface reflections multiply available light — all reflected sources 20% brighter'
+  },
+  fog: {
+    material: [
+      'background detail dissolving progressively — nearest elements sharp, middle distance soft, far background lost',
+      'moisture on all cold horizontal surfaces — table, ledge, ground',
+      'atmospheric haze making light beams visible as physical objects'
+    ],
+    atmosphere: [
+      'depth compression — scene appears flatter than it is',
+      'color saturation reduced with distance — far elements near-white',
+      'any warm light source visible as soft halo, not crisp point'
+    ],
+    lightMod: 'fog diffuses and scatters all light — no hard shadows, only soft gradients'
+  },
+  dust: {
+    material: [
+      'fine particulate suspended in light beams, visible only where light cuts through shadow',
+      'surfaces showing thin deposit on horizontal faces'
+    ],
+    atmosphere: [
+      'dry atmospheric haze reducing background sharpness',
+      'any strong light beam made visible by particulate'
+    ],
+    lightMod: 'volumetric light made physical by particulate — god rays visible'
+  }
+};
+
+const IMPERFECTION_POOLS = {
+  skin: [
+    'micro-blemishes and natural uneven skin tone variation across face zones',
+    'faint under-eye shadow from daily fatigue — not dramatic, functional',
+    'slight asymmetry in features — one brow marginally higher, jaw not perfectly centered',
+    'natural oil sheen on forehead T-zone catching nearest light source',
+    'subsurface scattering visible at ear edges and nose tip — translucent warm red'
+  ],
+  hair: [
+    'flyaway strands escaping hairline, catching backlight as thin bright filaments',
+    'natural hair texture variation — not uniformly groomed',
+    'wisps at temple behaving differently from main hair mass'
+  ],
+  expression: [
+    'mid-expression — face between states, not settled into any single emotion',
+    'slight jaw tension or brow micro-compression from concentration or awareness',
+    'eyes in motion — gaze neither fully here nor elsewhere'
+  ],
+  camera: [
+    'soft edge vignette — natural, not overlay — darkening corners',
+    'slight chromatic aberration on highest-contrast edges',
+    'visible grain in shadow areas — not digital noise, photographic grain character',
+    'halation on bright practical light sources — glow bleeding into surrounding dark',
+    '1-2 degree off-axis framing — asymmetric, not corrected'
+  ],
+  atmospheric: [
+    'suspended particles visible in any defined light beam',
+    'atmospheric haze reducing background contrast at depth',
+    'humidity softening the hardest edges in outdoor frames'
+  ],
+  weathering: [
+    'worn surface edges — chipped, rounded, scratched from years of contact',
+    'age-appropriate discoloration at high-contact zones',
+    'grime settled into recessed areas and grout lines',
+    'stains or water marks on porous wall or floor surfaces'
+  ],
+  material: [
+    'micro-scratches with directional wear pattern on reflective surfaces',
+    'fingerprint smudges on glass or smooth surface',
+    'material variation across surface — never uniform in color or roughness'
+  ],
+  'contact-shadow': [
+    'contact shadow — dark line where every surface meets another',
+    'ambient occlusion darkening all recessed corners and joins',
+    'soft material compression where weight presses down'
+  ],
+  light: [
+    'uneven lighting falloff — organic, not linear gradient',
+    'deep shadow crush at far corners — true black',
+    'color temperature variation across surfaces from multiple sources'
+  ]
+};
+
+// ── AESTHETIC DATA ─────────────────────────────────────────
+
+const AESTHETIC_DATA = {
+  'Joker · Psychological Grit':{
+    grade:'teal-orange color grade — shadows pushed deep teal-cyan, highlights warm amber-orange, skin tones preserved warm orange',
+    texture:'35mm film grain in shadow areas, halation around practical light sources, slight chromatic aberration on high-contrast edges',
+    atmos:'psychological weight and emotional tension, gritty atmosphere, lived-in surfaces and spaces',
+    negatives:['clean commercial look','bright cheerful lighting','HDR bloom','flat even lighting','Instagram filter aesthetic']
+  },
+  'Villeneuve · Epic Scale':{
+    grade:'muted earth tones — ochre, sand, rust — desaturated midtones, selective deep blue-teal accents',
+    texture:'heavy atmospheric haze and suspended dust, IMAX-level surface sharpness, god-scale compositional emptiness',
+    atmos:'vast scale dwarfing human presence, awe and existential isolation, minimal action maximum weight',
+    negatives:['cluttered busy composition','warm color saturation','shallow focus on landscape','multiple competing subjects']
+  },
+  'Retrofuturism · Lo-fi Sci-fi':{
+    grade:'VHS color bleed at edges, cyan-magenta split highlights, slight desaturation with neon accent preservation',
+    texture:'analog noise pattern, CRT scan-line quality in darker areas, lo-fi grain, tracking artifacts at frame edges',
+    atmos:'1980s synthetic nostalgia, neon-soaked retrofuturism, technology as aesthetic object',
+    negatives:['modern sharp digital clarity','8K pristine look','HDR','contemporary clean aesthetic','natural organic light']
+  },
+  'Makoto Shinkai · Atmospheric':{
+    grade:'hyper-saturated cerulean and gold — sky blues vivid, ground tones warm amber, strong atmosphere-to-ground contrast',
+    texture:'hyper-detailed environment surfaces, every particle visible, god rays as physical objects in space',
+    atmos:'loneliness rendered as beauty, emotional atmospheric lighting, rain reflections as emotional mirrors',
+    negatives:['flat grey sky','dry unlit environment','no atmospheric depth','low detail backgrounds','artificial indoor light']
+  },
+  'Lanthimos · Surreal':{
+    grade:'desaturated world with one vivid color pop — one hue pushed, everything else drained of saturation',
+    texture:'clinical precision with surreal wrongness, wide-angle edge distortion bending architecture inward',
+    atmos:'dark whimsy, surreal but grounded, unsettling normalcy — something wrong but nothing obviously',
+    negatives:['conventional warm perspective','natural framing','expected angles','emotional warmth','typical composition rules']
+  },
+  'Nolan · IMAX Realism':{
+    grade:'minimal color grade — true-to-life color temperature, deep blacks, luminous highlights, no tinting',
+    texture:'IMAX 70mm maximum clarity, practical lighting physics only, zero digital artifacts, material authenticity',
+    atmos:'hyper-real immersion, documentary weight, practical world — everything physically real',
+    negatives:['heavy color grading','artificial look','obvious CGI','fantasy elements','teal-orange grade','overprocessed look']
+  },
+  'Noir · High Contrast':{
+    grade:'deep blue-grey shadows, single warm key light source, extreme contrast ratio, chiaroscuro edge definition',
+    texture:'35mm noir grain, deep shadow crush — true black with no detail, highlights near blown',
+    atmos:'crime drama psychological tension, isolation, moral ambiguity, night as psychological state',
+    negatives:['color saturation','flat even lighting','multiple light sources','cheerful warm mood','soft fill light']
+  },
+  'Documentary · Raw':{
+    grade:'minimal grade — accurate color temperature, slight desaturation, no stylization',
+    texture:'natural imperfections, real-world disorder, nothing staged or arranged',
+    atmos:'authentic witnessed moment, functional not styled, truth over beauty',
+    negatives:['studio lighting','posed aesthetic','heavy color grading','stylized look','perfect composition','artificial staging']
+  }
+};
+
+const LIGHTING_DATA = {
+  'Golden Hour · 3200K':{desc:'warm 3200K golden hour key from low angle, long directional shadows, orange-pink ambient fill from open sky, soft wrap quality',kelvin:'3200K',type:'natural',timeOfDay:'evening'},
+  'Blue Hour · Dusk':{desc:'cool 6500K twilight ambient, deep blue-purple gradient sky, minimal directional shadows, transitional magic-hour diffusion',kelvin:'6500K',type:'natural',timeOfDay:'dusk'},
+  'Harsh Fluorescent':{desc:'cold 4100K overhead fluorescent strips, harsh downward shadows under brow and chin, slight green cast in midtones, institutional flatness',kelvin:'4100K',type:'artificial',timeOfDay:'interior'},
+  'Neon Urban Night':{desc:'multiple competing neon practicals — cyan, magenta, amber — colored light spill across all surfaces, high contrast lit vs unlit zones, rain-slicked reflections multiplying sources',kelvin:'mixed 2200–6500K',type:'synthetic',timeOfDay:'night'},
+  'Soft Window Light':{desc:'natural 5000K window light from camera-left, soft wrap with gentle gradient shadows, dust motes visible in defined light beam, clean directional quality',kelvin:'5000K',type:'natural',timeOfDay:'day'},
+  'Firelight · Candlelight':{desc:'flickering 1800K firelight as key, dancing unpredictable orange-amber shadows, rapid falloff into deep black, warm subsurface glow on any nearby organic material',kelvin:'1800K',type:'practical',timeOfDay:'night'},
+  'High Contrast Noir':{desc:'single harsh key light at 2700K from 45-degree high angle, fill ratio 1:8 creating dramatic shadow split, rim separating subject edge from background',kelvin:'2700K',type:'single-source',timeOfDay:'night'},
+  'Overcast · Flat Natural':{desc:'5600K overcast diffused daylight, soft even illumination from entire sky dome, minimal directional shadows, documentary naturalism',kelvin:'5600K',type:'natural',timeOfDay:'day'}
+};
+
+const LENS_DATA = {
+  '14–24mm · Ultra Wide':{desc:'14-24mm ultra-wide, f/4 deep focus, environment fills frame dramatically, edge distortion bending spatial geometry, immersive contextual depth',focal:'14-24mm',aperture:'f/4',dof:'deep'},
+  '35mm · Documentary':{desc:'35mm, f/2.8, natural human perspective, documentary authenticity, background softened but fully readable',focal:'35mm',aperture:'f/2.8',dof:'moderate'},
+  '50mm · Human Eye':{desc:'50mm standard, f/2.0, neutral perspective matching human visual field, background gently blurred, balanced spatial relationship',focal:'50mm',aperture:'f/2.0',dof:'moderate-shallow'},
+  '85mm · Portrait':{desc:'85mm portrait, f/1.8, shallow depth of field, background dissolved into creamy bokeh, subject isolated with elegant compression',focal:'85mm',aperture:'f/1.8',dof:'shallow'},
+  '135mm · Telephoto':{desc:'135mm telephoto, f/2.0, strong background compression flattening depth layers, voyeuristic observation distance, subject sharp against soft compressed distance',focal:'135mm',aperture:'f/2.0',dof:'shallow'},
+  'Macro · Extreme Detail':{desc:'100mm macro, f/2.8 razor-shallow focus, subject fills entire frame, micro-texture visible at pore fiber and grain level, world reduced to this square inch',focal:'100mm macro',aperture:'f/2.8',dof:'razor-shallow'}
+};
+
+const MOOD_DATA = {
+  'Melancholic · Lonely':{desc:'visual loneliness — subject separated from or dwarfed by environment, quiet weight, stillness as isolation'},
+  'Tense · Psychological':{desc:'psychological tension building, composition slightly off-balance, something is wrong in the frame before anything happens'},
+  'Hopeful · Golden':{desc:'warmth and forward momentum, light as metaphor for possibility, open compositional breathing room'},
+  'Eerie · Unsettling':{desc:'uncanny wrongness — too still, too quiet, something slightly off in every element'},
+  'Epic · Grand':{desc:'monumental scale, human smallness against vast forces, overwhelming grandeur'},
+  'Intimate · Quiet':{desc:'whisper-quiet intimacy, private moment witnessed, tender fragility, closeness without intrusion'},
+  'Meditative · Still':{desc:'breath held, time suspended, contemplative peace — nothing happening and that is the point'},
+  'Raw · Urgent':{desc:'unfiltered immediacy, documentary urgency — no time for composition, only the moment'}
+};
+
+const SUBJECT_RULES = {
+  'Portrait · Human':{imperfectionTypes:['skin','hair','expression','camera'],skinRules:true,moodStrong:true},
+  'Landscape · Environment':{imperfectionTypes:['atmospheric','weathering','light','camera'],skinRules:false,moodStrong:true},
+  'Urban · City':{imperfectionTypes:['weathering','atmospheric','light','camera'],skinRules:false,moodStrong:true},
+  'Architecture':{imperfectionTypes:['weathering','material','contact-shadow','camera'],skinRules:false,moodStrong:false},
+  'Product · Object':{imperfectionTypes:['material','contact-shadow','surface-wear'],skinRules:false,moodStrong:false,intensityCap:'balanced'},
+  'Creature · Animal':{imperfectionTypes:['skin','atmospheric','camera'],skinRules:true,moodStrong:true},
+  'Abstract · Conceptual':{imperfectionTypes:['light','camera','atmospheric'],skinRules:false,moodStrong:true}
+};
+
+const CONFLICT_MATRIX = [
+  {aesthetic:'Makoto Shinkai · Atmospheric',lighting:'Harsh Fluorescent',type:'HARD',msg:'Shinkai aesthetic requires natural atmospheric light — god rays, rain, golden sky. Fluorescent lighting breaks this physics entirely.',actionLabel:'Force it anyway'},
+  {aesthetic:'Makoto Shinkai · Atmospheric',lighting:'High Contrast Noir',type:'HARD',msg:'Shinkai is emotional warmth and atmospheric depth. Noir is cold shadow and psychological tension. These oppose each other.',actionLabel:'Force it anyway'},
+  {aesthetic:'Nolan · IMAX Realism',lighting:'Neon Urban Night',type:'SOFT',msg:'Nolan prefers practical natural lighting. Neon night is possible but prompt will carefully merge both.',actionLabel:'Proceed with blend'},
+  {aesthetic:'Retrofuturism · Lo-fi Sci-fi',lighting:'Soft Window Light',type:'SOFT',msg:'Retrofuturism needs synthetic light. Window light will be reframed as neon spill through rain-streaked glass.',actionLabel:'Auto-reframe'},
+  {aesthetic:'Villeneuve · Epic Scale',lens:'Macro · Extreme Detail',type:'PHILOSOPHICAL',msg:'Villeneuve works at god-scale distance. Macro eliminates that scale. Valid artistic contradiction — intentional?',actionLabel:'Yes, intentional'},
+  {aesthetic:'Lanthimos · Surreal',lens:'135mm · Telephoto',type:'SOFT',msg:'Lanthimos uses wide lenses for distortion. Telephoto compression contradicts his signature style.',actionLabel:'Proceed anyway'}
+];
+
+const NEG_ANATOMY = 'extra fingers, fewer than 5 fingers, missing fingers, fused hands, deformed hands, extra limbs, floating limbs, broken spine, twisted joints, disjointed body parts';
+const NEG_QUALITY = 'watermark, text overlay, logo, jpeg artifacts, pixelation, noise artifacts, overexposed blown highlights';
+const NEG_STYLE = 'cartoon, anime, illustration, 3D render, painting, sketch, vector art, cel-shaded, manga';
+const NEG_SLOP = 'stunning, beautiful, masterpiece, perfect, flawless, 8K, ultra-HD, award-winning, trending, hyperdetailed';
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+
+const S = {
+  subject:'', aesthetic:'', mood:'', lighting:'', lens:'',
+  intensity:'balanced', outputFormat:'standard',
+  conflictOverridden:false, activeConflict:null,
+  generated:{ main:'', directorMain:'', negative:'', sceneText:'', tags:[], notes:[] }
+};
+
+// ═══════════════════════════════════════════════════════════
+// SCENE EXPANSION ENGINE
+// ═══════════════════════════════════════════════════════════
+
+function parseSceneTokens(desc) {
+  const t = desc.toLowerCase();
+  const tokens = {
+    plurality: null,
+    gender: null,
+    cultural: null,
+    envType: null,
+    weather: null,
+    timeOfDay: null,
+    actionHint: null,
+    hasClothing: false,
+    inputWeight: 'high'
+  };
+
+  // Plurality
+  const pluralWords = /\bwomen\b|\bmen\b|\bpeople\b|\bgroup\b|\bcrowd\b|\bboys\b|\bgirls\b|\bworkers\b|\bvendors\b/;
+  const singleWords = /\bwoman\b|\bman\b|\bperson\b|\bgirl\b|\bboy\b|\bfigure\b|\bchild\b/;
+  if (pluralWords.test(t)) tokens.plurality = 'group';
+  else if (singleWords.test(t)) tokens.plurality = 'single';
+
+  // Gender
+  if (/\bwom[ae]n\b|\bgirl\b|\bshe\b|\bler\b/.test(t)) tokens.gender = 'female';
+  else if (/\bm[ae]n\b|\bboy\b|\bhe\b|\bhim\b/.test(t)) tokens.gender = 'male';
+
+  // Cultural
+  if (/\btamil\b/.test(t)) tokens.cultural = 'tamil';
+  else if (/\bjapanese\b|\bjapon\b/.test(t)) tokens.cultural = 'japanese';
+
+  // Environment type
+  const envMap = [
+    [/tea\s*shop|chai\s*stall|tea\s*stall/, 'tea shop'],
+    [/alley|lane|gully/, 'alley'],
+    [/street|road|pavement|sidewalk/, 'street'],
+    [/market|bazaar|bazar/, 'market'],
+    [/courtyard|yard|compound/, 'courtyard'],
+    [/forest|jungle|woods/, 'forest'],
+    [/interior|room|inside|indoor/, 'interior']
+  ];
+  for (const [re, name] of envMap) {
+    if (re.test(t)) { tokens.envType = name; break; }
+  }
+
+  // Weather
+  if (/\brain\b|\brainy\b|\bwet\b|\bdrench/.test(t)) tokens.weather = 'rain';
+  else if (/\bfog\b|\bmist\b|\bhaze\b/.test(t)) tokens.weather = 'fog';
+  else if (/\bdust\b|\bsand\b/.test(t)) tokens.weather = 'dust';
+
+  // Time of day
+  if (/\bnight\b|\bmidnight\b|\bafter dark\b/.test(t)) tokens.timeOfDay = 'night';
+  else if (/\bdawn\b|\bsunrise\b|\bmorning\b/.test(t)) tokens.timeOfDay = 'morning';
+  else if (/\bdusk\b|\bsunset\b|\bevening\b/.test(t)) tokens.timeOfDay = 'evening';
+  else if (/\bafternoon\b|\bmidday\b|\bnoon\b/.test(t)) tokens.timeOfDay = 'afternoon';
+
+  // Action
+  if (/\bsit\b|\bseated\b|\bsitting\b/.test(t)) tokens.actionHint = 'seated';
+  else if (/\bwalk\b|\bwalking\b|\bmoving\b/.test(t)) tokens.actionHint = 'walking';
+  else if (/\bwork\b|\bworking\b|\bserv/.test(t)) tokens.actionHint = 'working';
+  else if (/\bstand\b|\bstanding\b/.test(t)) tokens.actionHint = 'standing';
+
+  // Clothing already in desc → don't inject costume
+  if (/\bjeans\b|\bshirt\b|\bkurta\b|\bdress\b|\bcontemporary\b|\bmodern\b/.test(t)) {
+    tokens.hasClothing = true;
+  }
+
+  // Input weight
+  const len = desc.trim().length;
+  if (len < 30) tokens.inputWeight = 'high';
+  else if (len < 80) tokens.inputWeight = 'medium';
+  else tokens.inputWeight = 'low';
+
+  return tokens;
 }
 
-function select(el, key) {
-  document.querySelectorAll(`#${key} .chip`).forEach(c => c.classList.remove('selected'));
+function pick1(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function pickN(arr, n) {
+  const shuffled = [...arr].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, Math.min(n, arr.length));
+}
+
+function expandScene(description, context) {
+  if (!description || description.trim().length < 3) {
+    return { sceneText: '', tokens: {}, weight: 'low', detectedOverrides: {} };
+  }
+
+  const tokens = parseSceneTokens(description);
+  const weight = tokens.inputWeight;
+
+  // If detailed input → parse only, minimal injection
+  if (weight === 'low') {
+    return {
+      sceneText: description.trim(),
+      tokens, weight,
+      detectedOverrides: buildOverrides(tokens, context)
+    };
+  }
+
+  const parts = [];
+
+  // ── SUBJECT LINE ────────────────────────────────────────
+  // Keep user's original words — expand around it, not replace it
+  parts.push(description.trim() + '.');
+
+  // ── HUMAN EXPANSION ─────────────────────────────────────
+  if (tokens.plurality === 'single' && weight === 'high') {
+    const action = tokens.actionHint;
+    if (action === 'seated' || !action) parts.push(pick1(PLURALITY_RULES.single.postures) + '. ' + pick1(PLURALITY_RULES.single.gestures) + '.');
+    else if (action === 'working') parts.push('Body oriented toward task — hands occupied, posture functional rather than posed. ' + pick1(PLURALITY_RULES.single.gestures) + '.');
+    else if (action === 'standing') parts.push(pick1(PLURALITY_RULES.single.postures) + '.');
+  }
+
+  if (tokens.plurality === 'group') {
+    parts.push(pick1(PLURALITY_RULES.group.relational) + '. ' + pick1(PLURALITY_RULES.group.spatial) + '.');
+  }
+
+  // ── CULTURAL DETAIL ──────────────────────────────────────
+  if (tokens.cultural && !tokens.hasClothing) {
+    const cRules = CULTURAL_RULES[tokens.cultural];
+    if (cRules) {
+      const dontInject = (cRules.doNotInjectIfDescMentions || []).some(w => description.toLowerCase().includes(w));
+      if (!dontInject) {
+        if (weight === 'high') {
+          parts.push(pick1(cRules.costumeDetail) + '. ' + pick1(cRules.envDetail) + '.');
+        } else if (weight === 'medium') {
+          parts.push(pick1(cRules.envDetail) + '.');
+        }
+      }
+    }
+  }
+
+  // ── ENVIRONMENT EXPANSION ────────────────────────────────
+  const envKey = tokens.envType;
+  if (envKey && ENV_RULES[envKey]) {
+    const env = ENV_RULES[envKey];
+
+    // Props
+    const propCount = weight === 'high' ? 3 : 2;
+    const props = pickN(env.props, propCount);
+    parts.push('Scene props: ' + props.join('. ') + '.');
+
+    // Environment light (only if doesn't conflict with selection)
+    const selectedLightType = context.lighting ? LIGHTING_DATA[context.lighting]?.type : null;
+    const envLightNeeded = !selectedLightType || selectedLightType === 'natural';
+    if (envLightNeeded && weight === 'high') {
+      parts.push(pick1(env.light) + '.');
+    }
+
+    // Texture (director or high weight only)
+    if (weight === 'high' && (context.intensity === 'balanced' || context.intensity === 'director')) {
+      parts.push('Surface texture: ' + pick1(env.texture) + '.');
+    }
+  }
+
+  // ── WEATHER EXPANSION ────────────────────────────────────
+  if (tokens.weather && WEATHER_RULES[tokens.weather]) {
+    const wRules = WEATHER_RULES[tokens.weather];
+    const matCount = weight === 'high' ? 2 : 1;
+    const mat = pickN(wRules.material, matCount);
+    parts.push(mat.join('. ') + '.');
+    if (weight === 'high') parts.push(pick1(wRules.atmosphere) + '.');
+  }
+
+  // Word count guard — cap scene block at ~120 words
+  let sceneText = parts.join(' ');
+  const wordCount = sceneText.split(/\s+/).length;
+  if (wordCount > 120) {
+    // Trim to first 120 words
+    sceneText = sceneText.split(/\s+/).slice(0, 120).join(' ') + '...';
+  }
+
+  return {
+    sceneText,
+    tokens,
+    weight,
+    detectedOverrides: buildOverrides(tokens, context)
+  };
+}
+
+function buildOverrides(tokens, context) {
+  const overrides = {};
+  // Night in description but golden hour selected
+  if (tokens.timeOfDay === 'night' && context.lighting === 'Golden Hour · 3200K') {
+    overrides.lightingNote = 'Description mentions night — golden hour adjusted to deep ambient night tone.';
+  }
+  return overrides;
+}
+
+// ═══════════════════════════════════════════════════════════
+// PROMPT BUILDING
+// ═══════════════════════════════════════════════════════════
+
+function buildPrompt(ctx, rules, sceneResult) {
+  const { aesthetic, mood, lighting, lens, subject, intensity } = ctx;
+  const aData = AESTHETIC_DATA[aesthetic] || {};
+  const lData = LIGHTING_DATA[lighting] || {};
+  const lensD = LENS_DATA[lens] || {};
+  const moodD = MOOD_DATA[mood] || {};
+  const subRules = SUBJECT_RULES[subject] || {};
+  const { imperfections } = rules;
+
+  const blocks = [];
+
+  // 1. OPENING
+  blocks.push('Photorealistic cinematic image.');
+
+  // 2. SCENE BLOCK — dominant, always first after opening
+  if (sceneResult.sceneText) {
+    blocks.push(sceneResult.sceneText);
+  }
+
+  // 3. AESTHETIC
+  blocks.push(`Visual language: ${aData.atmos || ''}. Color grade — ${aData.grade || ''}. ${aData.texture || ''}.`);
+
+  // 4. LIGHTING
+  let lightDesc = lData.desc || '';
+  if (sceneResult.detectedOverrides?.lightingNote) {
+    lightDesc = lightDesc.replace('golden hour', 'deep night ambient').replace('3200K', '2400K');
+  }
+  blocks.push(`Lighting: ${lightDesc}.`);
+
+  // 5. LENS
+  blocks.push(`Lens: ${lensD.desc || ''}.`);
+
+  // 6. MOOD
+  blocks.push(`Mood: ${moodD.desc || ''}.`);
+
+  // 7. PHYSICS + MATERIAL
+  if (intensity !== 'minimal') {
+    if (subRules.skinRules) {
+      blocks.push('Physical realism: exactly 5 fingers per hand, logical joint angles. Subsurface scattering on skin — red-yellow mix at thin areas, not uniform. Natural oil sheen on forehead T-zone.');
+    } else {
+      blocks.push('Physical realism: contact shadows at all surface intersections, material-accurate roughness variation across all visible surfaces, age-appropriate wear, no floating elements.');
+    }
+  }
+
+  // 8. IMPERFECTIONS — subject-aware
+  if (imperfections.length > 0) {
+    blocks.push(`Mandatory imperfections: ${imperfections.join('. ')}.`);
+  }
+
+  // 9. DIRECTOR BLOCK
+  if (intensity === 'director') {
+    blocks.push('Director-level specification: atmospheric particles visible in defined light beams, practical light sources show natural bloom and falloff, background structurally coherent (not smeared), color temperature variation across surfaces from multiple light sources, grain visible in shadow areas, halation on bright highlights, camera off-axis 1-2 degrees — asymmetric framing.');
+  }
+
+  return blocks.filter(Boolean).join('\n\n');
+}
+
+function buildNegativePrompt(ctx) {
+  const { aesthetic, lighting, lens, subject, intensity } = ctx;
+  const aData = AESTHETIC_DATA[aesthetic] || {};
+  const lData = LIGHTING_DATA[lighting] || {};
+  const lensD = LENS_DATA[lens] || {};
+  const subRules = SUBJECT_RULES[subject] || {};
+
+  const negs = [NEG_ANATOMY, NEG_QUALITY, NEG_STYLE];
+
+  if (subRules.skinRules) {
+    negs.push('plastic skin, poreless face, airbrushed texture, over-smoothed skin, synthetic appearance, perfect symmetry');
+  }
+
+  if (aData.negatives) negs.push(aData.negatives.join(', '));
+
+  if (lensD.dof === 'deep') negs.push('shallow bokeh, out of focus subject');
+  if (lensD.dof === 'shallow' || lensD.dof === 'razor-shallow') negs.push('everything in focus, deep focus landscape');
+
+  if (lData.type === 'natural') negs.push('artificial studio lighting, synthetic glow, unnatural light source');
+  if (lData.type === 'synthetic') negs.push('natural organic sunlight, outdoor daylight');
+
+  if (intensity === 'minimal') negs.push('heavy color grading, overwhelming technical detail');
+
+  negs.push(NEG_SLOP);
+
+  return [...new Set(negs.filter(Boolean))].join(', ');
+}
+
+function buildImperfections(subjectKey, intensity) {
+  const subRules = SUBJECT_RULES[subjectKey] || {};
+  const types = subRules.imperfectionTypes || ['camera', 'atmospheric'];
+  const counts = { minimal: 3, balanced: 5, director: 8 };
+  const count = counts[intensity] || 5;
+
+  let pool = [];
+  types.forEach(t => { if (IMPERFECTION_POOLS[t]) pool.push(...IMPERFECTION_POOLS[t]); });
+  pool = [...new Set(pool)];
+
+  // Pick randomly from pool so each generation feels fresh
+  return pickN(pool, count);
+}
+
+// ═══════════════════════════════════════════════════════════
+// UI + STATE
+// ═══════════════════════════════════════════════════════════
+
+function setIntensity(el, val) {
+  document.querySelectorAll('.int-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  S.intensity = val;
+}
+
+function pick(el, key) {
+  document.querySelectorAll(`#${key} .chip`).forEach(c => {
+    c.classList.remove('selected', 'soft-conflict', 'hard-conflict');
+  });
   el.classList.add('selected');
-  state[key] = el.textContent.trim();
+  S[key] = el.textContent.trim();
+  S.conflictOverridden = false;
+  runConflictCheck();
   updateCounter();
 }
 
 function updateCounter() {
-  const filled = ['subject','aesthetic','mood','lighting','lens'].filter(k => state[k]).length;
+  const keys = ['subject', 'aesthetic', 'mood', 'lighting', 'lens'];
+  const filled = keys.filter(k => S[k]).length;
   document.getElementById('counter').textContent = `${filled} / 5 selected`;
   const btn = document.getElementById('forge-btn');
-  btn.disabled = filled < 5;
-  btn.textContent = filled < 5
-    ? `Select ${5 - filled} more option${5 - filled !== 1 ? 's' : ''} to Forge`
-    : '⟐ FORGE PROMPT';
+  const hardBlocked = S.activeConflict?.type === 'HARD' && !S.conflictOverridden;
+  btn.disabled = filled < 5 || hardBlocked;
+  if (filled < 5) btn.textContent = `Select ${5 - filled} more option${5 - filled !== 1 ? 's' : ''}`;
+  else if (hardBlocked) btn.textContent = 'Resolve Conflict First';
+  else btn.textContent = '⟐ FORGE PROMPT';
 }
 
-// ─── Prompt Templates ────────────────────────────────────────────────
+function runConflictCheck() {
+  if (!S.aesthetic || (!S.lighting && !S.lens)) { hideBanner(); return; }
+  const conflict = detectConflict();
+  S.activeConflict = conflict;
+  if (!conflict) { hideBanner(); clearConflictChips(); return; }
+  showBanner(conflict);
+  highlightChips(conflict);
+}
 
-const aestheticData = {
-  'Joker / Psychological Grit': {
-    grade: 'teal-orange color grading, shadows pushed deep teal-cyan, highlights warm amber, skin tones preserved orange',
-    texture: 'gritty surface texture, 35mm film grain visible in shadows, halation around practical light sources',
-    atmos: 'psychological weight, emotional tension, gritty urban atmosphere'
-  },
-  'Villeneuve / Epic Scale': {
-    grade: 'muted earth palette, ochre and sand tones, desaturated midtones with selective blue-teal accents',
-    texture: 'IMAX-quality texture, sharp micro-detail on all surfaces, heavy atmospheric haze and dust particles',
-    atmos: 'god-scale composition, vast emptiness, awe and isolation'
-  },
-  'Retrofuturism / Lo-fi Sci-fi': {
-    grade: 'VHS color bleed, slight chromatic aberration on edges, cyan-magenta split highlights',
-    texture: 'analog noise texture, CRT scan-line quality, VHS tracking artifacts, lo-fi grain',
-    atmos: '1980s neon-soaked retrofuturism, analog warmth, synthetic nostalgia'
-  },
-  'Makoto Shinkai / Atmospheric': {
-    grade: 'hyper-saturated sky blues and warm golden ground, strong contrast between sky and earth',
-    texture: 'hyper-detailed environment surfaces, every leaf and particle visible, god rays through atmospheric haze',
-    atmos: 'emotional atmospheric lighting, loneliness rendered as beauty, rain reflections, god rays'
-  },
-  'Lanthimos / Surreal': {
-    grade: 'desaturated world with single vivid color pop, wide-angle lens distortion bending reality',
-    texture: 'clinical surrealism, perfect imperfection, fisheye edge distortion',
-    atmos: 'dark whimsy, surreal but grounded, unsettling normalcy'
-  },
-  'Nolan / IMAX Realism': {
-    grade: 'minimal color grading, true-to-life color temperature, deep blacks and luminous highlights',
-    texture: 'IMAX 70mm clarity, practical lighting only, zero digital artifacts, maximum sharpness',
-    atmos: 'hyper-real immersion, documentary authenticity, practical weight'
-  },
-  'Noir / High Contrast': {
-    grade: 'monochromatic blue-grey shadows, single warm key light, extreme contrast ratio 1:16',
-    texture: '35mm noir grain, deep shadow crush, chiaroscuro edge definition',
-    atmos: 'crime drama tension, isolation, psychological noir'
+function detectConflict() {
+  for (const c of CONFLICT_MATRIX) {
+    const aMatch = c.aesthetic === S.aesthetic;
+    const lMatch = c.lighting && c.lighting === S.lighting;
+    const lensMatch = c.lens && c.lens === S.lens;
+    if (aMatch && (lMatch || lensMatch)) return c;
   }
-};
-
-const lightingData = {
-  'Golden Hour (3200K)': 'warm 3200K golden hour key light from low angle camera-right, long soft shadows, orange-pink ambient fill from open sky',
-  'Blue Hour / Dusk': 'cool 6500K twilight ambient, deep blue-purple gradient sky, minimal directional shadows, magical transition light',
-  'Harsh Fluorescent': 'cold 4100K overhead fluorescent tubes, harsh downward shadows, slight green cast in midtones, institutional flatness',
-  'Neon Urban Night': 'multiple practical neon sources (cyan, magenta, amber), colored light spill across surfaces, high contrast between lit and unlit zones, rain-slicked reflections',
-  'Soft Window Light': 'natural 5000K window light from camera-left, soft wrap, gentle gradient shadows, dust motes visible in light beam',
-  'Firelight / Candlelight': 'flickering 1800K firelight key, dancing orange-amber shadows, dramatic falloff into deep black, warm SSS glow on skin',
-  'High Contrast Noir': 'single harsh key light 2700K from 45-degree angle, fill ratio 1:8, deep crushed blacks, rim light separating subject from background'
-};
-
-const lensData = {
-  '24mm — Wide, Immersive': '24mm wide-angle lens, f/4 deep focus, extensive background in sharp focus, slight edge distortion, immersive environmental context',
-  '35mm — Documentary, Natural': '35mm lens, f/2.8 moderate shallow focus, natural human perspective, documentary authenticity, background softened but readable',
-  '50mm — Human Eye': '50mm standard lens, f/2.0, neutral perspective matching human eye, background gently blurred, balanced composition',
-  '85mm — Portrait, Intimate': '85mm portrait lens, f/1.8 shallow depth of field, creamy background bokeh, subject isolated beautifully, intimate compression',
-  '135mm — Compressed, Voyeur': '135mm telephoto lens, f/2.0, strong background compression, layers flattened, voyeuristic distance, subject sharp against soft depth',
-  'Macro — Extreme Detail': '100mm macro lens, f/2.8 extremely shallow focus, subject fills entire frame, micro-texture visible at pore and fiber level'
-};
-
-const moodAtmos = {
-  'Melancholic / Lonely': 'melancholic isolation, subject dwarfed by environment, visual loneliness, quiet emotional weight',
-  'Tense / Psychological': 'psychological tension, unease building in composition, Dutch angle 2-3 degrees, viewer discomfort',
-  'Hopeful / Golden': 'warmth and forward momentum, golden light as metaphor, open composition with breathing room',
-  'Eerie / Unsettling': 'uncanny wrongness, too quiet, too still, something slightly off in every element',
-  'Epic / Grand': 'monumental scale, human smallness against vast forces, grandeur and awe',
-  'Intimate / Quiet': 'whisper-quiet intimacy, private moment witnessed, tender fragility',
-  'Meditative / Still': 'zen stillness, breath held, time suspended, contemplative peace'
-};
-
-const negativeByAesthetic = {
-  'Joker / Psychological Grit': 'clean commercial look, bright happy lighting, flat lighting, HDR glow, Instagram filter',
-  'Villeneuve / Epic Scale': 'cluttered composition, busy frame, warm color grade, shallow focus on landscape',
-  'Retrofuturism / Lo-fi Sci-fi': 'modern sharp digital look, 8K clarity, HDR, pristine surfaces, contemporary aesthetic',
-  'Makoto Shinkai / Atmospheric': 'flat grey sky, dry environment, no atmosphere, low detail backgrounds',
-  'Lanthimos / Surreal': 'normal perspective, natural framing, conventional composition, expected angles',
-  'Nolan / IMAX Realism': 'heavy color grading, artificial look, fantasy elements, obvious CGI',
-  'Noir / High Contrast': 'color saturation, flat even lighting, cheerful mood, soft light'
-};
-
-const universalNegative = 'extra fingers, missing fingers, fewer than 5 fingers, fused hands, deformed hands, extra limbs, floating limbs, broken spine, twisted joints, plastic skin, poreless face, airbrushed texture, perfect symmetry, cartoon style, anime, illustration, 3D render, watermark, text overlay, logo, overexposed highlights, muddy colors, jpeg artifacts, blurry subject';
-
-function buildPrompt() {
-  const desc = document.getElementById('description').value.trim();
-  const aData = aestheticData[state.aesthetic] || {};
-  const lData = lightingData[state.lighting] || '';
-  const lensD = lensData[state.lens] || '';
-  const moodD = moodAtmos[state.mood] || '';
-  const negAes = negativeByAesthetic[state.aesthetic] || '';
-
-  const modelNote = {
-    'ChatGPT Image 1.5': `Shot on Arri Alexa 35 with ${state.lens.split('—')[0].trim()}`,
-    'Nano Banana Pro': `Create a photorealistic image of`,
-    'Grok Imagine': `Photorealistic cinematic image —`
-  }[state.model] || 'Photorealistic cinematic image —';
-
-  const subjectLine = desc
-    ? `${desc}`
-    : `${state.subject} as primary subject`;
-
-  const mainPrompt = `${modelNote} ${subjectLine}.
-
-Setting and atmosphere: ${moodD}. ${aData.atmos || ''}.
-
-Lighting: ${lData}. Color grade — ${aData.grade || ''}.
-
-Lens and camera: ${lensD}. Slight 1-2 degree camera tilt off-axis, natural asymmetric framing, subject placed on left or right third of frame.
-
-Surface and material detail: ${aData.texture || ''}. Every visible surface shows material-accurate roughness variation, micro-texture, age-appropriate wear. Contact shadows present at all object intersections. No floating elements.
-
-Imperfections (mandatory): Flyaway hairs or loose strands, micro-blemishes on skin, slight chromatic aberration on high-contrast edges, edge vignette (soft, natural), visible film grain in shadow areas, uneven lighting falloff, blown highlights on practical light sources, deep shadow crush in corners, asymmetric facial features, worn surface details.
-
-Physical realism: Exactly 5 fingers per hand. Logical joint angles. Subsurface scattering on skin (red-yellow mix, not uniform). Atmospheric depth with particles or haze. No studio gradients.
-
-Style reference: ${state.aesthetic.split(' / ')[0]} visual language. ${state.model} optimized.`;
-
-  const negPrompt = `${universalNegative}, ${negAes}, perfect lighting, symmetrical face, studio aesthetic, clean background, flawless skin, perfectly styled hair, pristine environment, stunning, beautiful, masterpiece, 8K, ultra-HD, perfect, award-winning`;
-
-  return { mainPrompt, negPrompt };
+  return null;
 }
+
+function showBanner(c) {
+  const banner = document.getElementById('conflict-banner');
+  const typeClass = c.type === 'HARD' ? 'cb-hard' : c.type === 'PHILOSOPHICAL' ? 'cb-phil' : 'cb-soft';
+  banner.className = `conflict-banner ${typeClass}`;
+  banner.style.display = 'block';
+  document.getElementById('conflict-ttl').textContent =
+    c.type === 'HARD' ? '⚠ HARD CONFLICT' :
+    c.type === 'PHILOSOPHICAL' ? '◈ ARTISTIC TENSION' : '◌ COMBINATION NOTICE';
+  document.getElementById('conflict-msg').textContent = c.msg;
+  document.getElementById('conflict-action').textContent = c.actionLabel || 'Proceed anyway';
+}
+
+function hideBanner() {
+  document.getElementById('conflict-banner').style.display = 'none';
+}
+
+function clearConflictChips() {
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('soft-conflict', 'hard-conflict'));
+}
+
+function highlightChips(c) {
+  clearConflictChips();
+  const cls = c.type === 'HARD' ? 'hard-conflict' : 'soft-conflict';
+  document.querySelectorAll('#aesthetic .chip').forEach(ch => {
+    if (ch.textContent.trim() === S.aesthetic) ch.classList.add(cls);
+  });
+  if (c.lighting) document.querySelectorAll('#lighting .chip').forEach(ch => {
+    if (ch.textContent.trim() === S.lighting) ch.classList.add(cls);
+  });
+  if (c.lens) document.querySelectorAll('#lens .chip').forEach(ch => {
+    if (ch.textContent.trim() === S.lens) ch.classList.add(cls);
+  });
+}
+
+function overrideConflict() {
+  S.conflictOverridden = true;
+  hideBanner();
+  clearConflictChips();
+  updateCounter();
+}
+
+function onDescInput(el) {
+  const desc = el.value.trim();
+  const hint = document.getElementById('desc-hint');
+  if (!desc) { hint.textContent = 'Scene expansion: type to begin'; hint.classList.remove('active'); return; }
+  const tokens = parseSceneTokens(desc);
+  const detections = [];
+  if (tokens.plurality) detections.push(tokens.plurality === 'group' ? 'group detected' : 'single subject');
+  if (tokens.cultural) detections.push(`${tokens.cultural} cultural context`);
+  if (tokens.envType) detections.push(`${tokens.envType} environment`);
+  if (tokens.weather) detections.push(`${tokens.weather} weather`);
+  if (tokens.timeOfDay) detections.push(`${tokens.timeOfDay}`);
+  const weightLabels = { high: 'Full expansion', medium: 'Selective expansion', low: 'Minimal expansion' };
+  hint.textContent = `${weightLabels[tokens.inputWeight]} · ${detections.length > 0 ? detections.join(' · ') : 'basic scene'}`;
+  hint.classList.add('active');
+}
+
+function setFormat(el, fmt) {
+  document.querySelectorAll('.fmt-tab').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  S.outputFormat = fmt;
+  renderOutput();
+}
+
+// ═══════════════════════════════════════════════════════════
+// FORGE
+// ═══════════════════════════════════════════════════════════
 
 function forge() {
-  const { mainPrompt, negPrompt } = buildPrompt();
+  const desc = document.getElementById('description').value.trim();
+  const ctx = {
+    subject: S.subject, aesthetic: S.aesthetic, mood: S.mood,
+    lighting: S.lighting, lens: S.lens, intensity: S.intensity
+  };
 
-  document.getElementById('form-section').style.display = 'none';
-  document.getElementById('result-section').style.display = 'block';
+  // Scene expansion — the heart of V3
+  const sceneResult = expandScene(desc, ctx);
 
-  document.getElementById('result-label').textContent = `PROMPT READY — ${state.model.toUpperCase()}`;
-  document.getElementById('result-title').textContent =
-    `${state.aesthetic.split(' / ')[0]} × ${state.mood.split(' / ')[0]}`;
+  // Subject intensity cap
+  let intensity = S.intensity;
+  if (SUBJECT_RULES[S.subject]?.intensityCap === 'balanced' && intensity === 'director') intensity = 'balanced';
 
-  document.getElementById('main-prompt').textContent = mainPrompt;
-  document.getElementById('neg-prompt').textContent = negPrompt;
+  // Build imperfections
+  const imperfections = buildImperfections(S.subject, intensity);
+
+  // Build prompts
+  const main = buildPrompt({ ...ctx, intensity }, { imperfections }, sceneResult);
+  const negative = buildNegativePrompt({ ...ctx, intensity });
+
+  // Director mode — force max depth
+  const directorImperfections = buildImperfections(S.subject, 'director');
+  const directorMain = buildPrompt({ ...ctx, intensity: 'director' }, { imperfections: directorImperfections }, sceneResult);
+
+  // Notes
+  const notes = [];
+  if (sceneResult.detectedOverrides?.lightingNote) notes.push({ text: sceneResult.detectedOverrides.lightingNote, type: 'warn' });
+  if (S.activeConflict && S.conflictOverridden) notes.push({ text: `Conflict overridden: prompt blended both directions.`, type: 'warn' });
+  if (sceneResult.weight === 'high' && desc) notes.push({ text: `Scene fully expanded from "${desc.slice(0, 40)}${desc.length > 40 ? '...' : ''}"`, type: 'info' });
+  if (sceneResult.weight === 'low') notes.push({ text: 'Detailed description detected — minimal interference applied.', type: 'info' });
 
   // Tags
-  const tagsEl = document.getElementById('tags');
-  tagsEl.innerHTML = '';
-  [state.subject, state.aesthetic.split(' / ')[0], state.lighting, state.lens.split('—')[0].trim(), state.model]
-    .forEach(t => {
-      const span = document.createElement('span');
-      span.className = 'tag';
-      span.textContent = t;
-      tagsEl.appendChild(span);
-    });
+  const tags = [S.subject, S.aesthetic.split(' · ')[0], S.lighting.split(' · ')[0], S.lens.split(' · ')[0], intensity.toUpperCase()];
 
-  window._fullPrompt = mainPrompt + '\n\n---NEGATIVE PROMPT---\n' + negPrompt;
+  S.generated = { main, directorMain, negative, sceneText: sceneResult.sceneText, tags, notes };
+
+  // Switch to result
+  document.getElementById('form-section').style.display = 'none';
+  document.getElementById('result-section').style.display = 'block';
+  document.getElementById('result-meta').textContent = `PROMPT READY · UNIVERSAL · ${intensity.toUpperCase()} MODE`;
+  document.getElementById('result-title').textContent = `${S.aesthetic.split(' · ')[0]} × ${S.mood.split(' · ')[0]}`;
+
+  // Reset format tabs
+  document.querySelectorAll('.fmt-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.fmt-tab')[0].classList.add('active');
+  S.outputFormat = 'standard';
+
+  renderOutput();
   window.scrollTo(0, 0);
 }
 
-function copyPrompt() {
-  navigator.clipboard.writeText(window._fullPrompt || '').then(() => {
+function renderOutput() {
+  const { main, directorMain, negative, sceneText, tags, notes } = S.generated;
+  const fmt = S.outputFormat;
+
+  // Prompt
+  document.getElementById('main-prompt-text').textContent = fmt === 'director' ? directorMain : main;
+  document.getElementById('box-label').textContent = fmt === 'director' ? 'DIRECTOR MODE PROMPT' : 'MAIN PROMPT';
+
+  // Negative
+  const negBox = document.getElementById('neg-box');
+  if (fmt === 'with-negative' || fmt === 'director') {
+    negBox.style.display = 'block';
+    document.getElementById('neg-prompt-text').textContent = negative;
+  } else {
+    negBox.style.display = 'none';
+  }
+
+  // Scene preview (show when scene expanded)
+  const scenePreview = document.getElementById('scene-preview');
+  if (sceneText && S.generated.notes.some(n => n.type === 'info' && n.text.includes('expanded'))) {
+    scenePreview.style.display = 'block';
+    document.getElementById('scene-preview-text').textContent = sceneText;
+  } else {
+    scenePreview.style.display = 'none';
+  }
+
+  // Notes
+  const notesEl = document.getElementById('result-notes');
+  notesEl.innerHTML = '';
+  notes.forEach(n => {
+    const d = document.createElement('div');
+    d.className = `result-note ${n.type === 'info' ? 'info' : ''}`;
+    d.textContent = (n.type === 'info' ? '◈ ' : '◌ ') + n.text;
+    notesEl.appendChild(d);
+  });
+
+  // Tags
+  const tagsEl = document.getElementById('result-tags');
+  tagsEl.innerHTML = '';
+  tags.forEach((t, i) => {
+    const s = document.createElement('span');
+    s.className = 'tag' + (i === 4 ? ' hi' : '');
+    s.textContent = t;
+    tagsEl.appendChild(s);
+  });
+
+  // Copy reset
+  const cb = document.getElementById('copy-btn');
+  cb.textContent = '⊕ COPY PROMPT';
+  cb.classList.remove('copied');
+}
+
+function doCopy() {
+  const fmt = S.outputFormat;
+  const { main, directorMain, negative } = S.generated;
+  let text = fmt === 'director' ? directorMain : main;
+  if (fmt === 'with-negative' || fmt === 'director') text += '\n\n---NEGATIVE PROMPT---\n' + negative;
+  navigator.clipboard.writeText(text).then(() => {
     const btn = document.getElementById('copy-btn');
-    btn.textContent = '✓ COPIED TO CLIPBOARD';
+    btn.textContent = '✓ COPIED';
     btn.classList.add('copied');
-    setTimeout(() => {
-      btn.textContent = '⊕ COPY FULL PROMPT';
-      btn.classList.remove('copied');
-    }, 2500);
+    setTimeout(() => { btn.textContent = '⊕ COPY PROMPT'; btn.classList.remove('copied'); }, 2500);
   });
 }
 
